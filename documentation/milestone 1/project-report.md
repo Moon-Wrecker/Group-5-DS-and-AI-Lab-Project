@@ -39,7 +39,7 @@ These targets are proposals. We will test them at Milestone 5 on a locked test s
 | # | Objective | Metric | Target (proposal) | Basis |
 |---|---|---|---|---|
 | O1 | Identify the 27 species | Macro-F1 / top-3 accuracy | ≥ 0.80 / ≥ 0.93 | A 45-species benchmark reported F1 0.83 [3]. The global ViT reached 92.2% macro-F1 on 772 species with about 386k photos [2] |
-| O2 | Catch dangerous snakes | Recall on the 7 WHO Category 1 and 2 species, counted as "medically important" | ≥ 0.95 | Safety goal, using the WHO SEARO 2016 category list [15] |
+| O2 | Catch dangerous snakes | Recall of the medically important group: the share of images of the 7 WHO Category 1 and 2 species that are predicted as any of those 7 | ≥ 0.95 | Safety goal, using the WHO SEARO 2016 category list [15] |
 | O3 | Avoid the most harmful error | Share of medically important images predicted as a not-listed species (non-abstained predictions only) | ≤ 2% | Asymmetric error cost, as in SnakeCLEF 2024 [4] |
 | O4 | Know when it does not know | Expected calibration error after temperature scaling; error at 80% coverage; share of out-of-list snakes flagged "unknown" | ECE ≤ 0.05; error ≤ 5%; ≥ 70% flagged | Calibration method [20] |
 | O5 | Find the snake first | Detector precision and recall at IoU 0.5 | ≥ 0.90 each | Prior YOLO work reported 87% to 88% precision [13, 14] |
@@ -156,7 +156,7 @@ Disputed or mis-identified taxa, rare classes, geographic and platform bias, rep
 
 ### 3.6 Lookalike species pairs
 
-WHO warns that even medical staff mistake harmless mimics for venomous snakes, or one venomous species for another [15, PDF p. 126]. To see which of our classes people actually confuse, we queried iNaturalist's similar-species count for India on 22 October 2026 [16]: for each pair, the number of observations of one species that received an identification of the other. These are human confusions, not model errors, so we use them to choose which pairs to test, not as a baseline. Across our 27 classes there are 25 pairs that join a WHO-listed species with a not-listed one, with 107 confusions in total. The first two rows below account for 63 of them.
+WHO warns that even medical staff mistake harmless mimics for venomous snakes, or one venomous species for another [15, PDF p. 126]. To see which of our classes people actually confuse, we queried iNaturalist's similar-species count for India on 22 October 2026 [16]: for each pair, the number of observations of one species that received an identification of the other. These are human confusions, not model errors, so we use them to choose which pairs to test, not as a baseline. Across our 27 classes, 25 pairs join a WHO-listed species with a not-listed one, with 107 confusions in total. The first six rows below cover 9 of those pairs and 82 of the confusions, and the first two rows alone account for 63. The other 16 pairs have 1 to 4 confusions each, 25 in total; the largest is common krait with oriental rat snake (4). The last row is different: it joins dangerous species with each other, and is one of 6 such pairs with 21 confusions between them.
 
 | Pair (WHO category in India) | iNat confusions | What tells them apart |
 |---|---:|---|
@@ -170,8 +170,8 @@ WHO warns that even medical staff mistake harmless mimics for venomous snakes, o
 
 How we will use this:
 
-- At Milestone 5 we report the confusion rate in both directions for each pair above. Dangerous to not-listed counts toward O3; not-listed to dangerous is a false alarm that can get a harmless snake killed.
-- Confusions between two dangerous classes, such as hump-nosed pit viper and saw-scaled viper, are reported separately even though O2 and O3 do not penalise them.
+- At Milestone 5 we report the confusion rate in both directions for all 25 pairs that join a dangerous and a not-listed species, including the 16 not shown in the table. Dangerous to not-listed counts toward O3; not-listed to dangerous is a false alarm that can get a harmless snake killed.
+- Confusions between two dangerous classes, such as hump-nosed pit viper and saw-scaled viper, are reported separately. O2 treats the 7 dangerous species as one group and O3 counts only dangerous snakes labelled as not-listed, so neither target penalises these confusions.
 - We will check Grad-CAM maps for each pair to see whether the model looks at the head and markings. A 2026 study on Indian snakes used Grad-CAM++ this way, and MobileViT-S had the lowest venomous recall of its four models (85.98%) [32], so these pairs are where we test whether MobileViT is good enough.
 - Some classes are also confused with recently split species outside our list (for example *Oligodon tillacki*, *Sahyadriophis uttaraghati* and *Craspedocephalus anamallensis*). These classes go first in the 200-image label check (section 3.3).
 
