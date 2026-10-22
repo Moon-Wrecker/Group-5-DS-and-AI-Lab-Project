@@ -18,6 +18,7 @@ The course asks for this log to be updated every week with each member's contrib
 | Feasibility review and data check | Checked the plan against each milestone's requirements. Counted the available data with the iNaturalist API (27 Indian species with at least 200 CC-licensed research-grade observations each), located the released PLOS baseline model, the Open Images snake boxes and the WHO species categories, and found no public species-labelled snake video. | Puneet Bajaj | 22 Oct 2026 | Jayesh Bansal |
 | Report and slide revision | Added scope, stakeholders and measurable targets for the M1 rubric, the species table, real data samples and two output mockups, the grouped-split and video-clip plan, the Kaggle and Colab compute plan, and the detector, tracker and classifier architecture. Corrected the PLOS first author, replaced slide figures and chart values that had no source, matched the slide claims to the report, and added a slide on scope, stakeholders and targets. | Puneet Bajaj | 22 Oct 2026 | Jayesh Bansal |
 | Repository documentation | Wrote the README, extended `.gitignore` to keep data and model files out of git, and fixed the links in this log. | Puneet Bajaj | 22 Oct 2026 | Jayesh Bansal |
+| Lookalike species research | Counted how often iNaturalist identifiers in India confuse our 27 classes (25 pairs that join a WHO-listed and a not-listed species, 107 confusions), checked distinguishing features against the WHO SEARO 2016 guidelines and published papers, and added report section 3.6 with four new references. | Manas Rastogi | 22 Oct 2026 | Manas Rastogi |
 
 ### Member contribution summary
 
@@ -26,7 +27,7 @@ The course asks for this log to be updated every week with each member's contrib
 | Jayesh Bansal | Project report | [project-report.md](documentation/milestone%201/project-report.md) | Jayesh Bansal |
 | Vikas | Presentation preparation | [SerpentGuard_AI_Group5_Presentation.pdf](documentation/milestone%201/assets/SerpentGuard_AI_Group5_Presentation.pdf) | Vikas |
 | Puneet Bajaj | Repository setup; feasibility and data check; report sections 1, 3, 5, 6, 7 and 9 and the references; data samples and output mockups; slide revision; README | [project-report.md](documentation/milestone%201/project-report.md), [README.md](README.md) | Puneet Bajaj |
-| Manas Rastogi | To be filled in by Manas |  |  |
+| Manas Rastogi | Lookalike species pairs: iNaturalist confusion counts, distinguishing features and how they feed the evaluation; report section 3.6 and references 29 to 32 | [project-report.md, section 3.6](documentation/milestone%201/project-report.md#36-lookalike-species-pairs) | Manas Rastogi |
 
 All members must also sign the acknowledgment page at the end of the [Milestone 1 project report](documentation/milestone%201/project-report.md) and the last slide of the presentation.
 
@@ -39,4 +40,4 @@ By signing, each member confirms that they have reviewed this log, that their ow
 | Jayesh Bansal | 24f100185 |![Jayesh Bansal](https://drive.google.com/uc?export=download&id=1imepTm_t9vgJVL367tWU-LPYcLq9Zet0)|22/10/2026|
 | Vikas | 23f3001800 | Vikas | 22/10/2026 |
 | Puneet Bajaj | 23f3002416 | Puneet Bajaj | 22/10/2026 |
-| Manas Rastogi |  |  |  |
+| Manas Rastogi | 22f3001477 | ![Manas Rastogi](https://drive.google.com/uc?export=download&id=1j9vC0yjI-eb3lGfETUdnK3GAXq77__lT) | 22/10/2026 |

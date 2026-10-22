@@ -154,6 +154,27 @@ Neither synthetic nor re-captured clips show a snake actually moving. We will re
 
 Disputed or mis-identified taxa, rare classes, geographic and platform bias, repeated images of the same individual, captive snakes, taxonomic renames (for example *Xenochrophis* to *Fowlea* and *Trimeresurus* to *Craspedocephalus*), photos with several snakes, obscured coordinates (12% of sampled observations) and the mix of licences. Research grade applies to the observation, not to each photo: the first of five photos in [iNaturalist 251871933](https://www.inaturalist.org/observations/251871933), a research-grade *Ptyas mucosa*, shows a shed skin, which a per-photo dataset would label as the species. The Milestone 2 data report will include a check for each risk.
 
+### 3.6 Lookalike species pairs
+
+WHO warns that even medical staff mistake harmless mimics for venomous snakes, or one venomous species for another [15, PDF p. 126]. To see which of our classes people actually confuse, we queried iNaturalist's similar-species count for India on 22 October 2026 [16]: for each pair, the number of observations of one species that received an identification of the other. These are human confusions, not model errors, so we use them to choose which pairs to test, not as a baseline. Across our 27 classes there are 25 pairs that join a WHO-listed species with a not-listed one, with 107 confusions in total. The first two rows below account for 63 of them.
+
+| Pair (WHO category in India) | iNat confusions | What tells them apart |
+|---|---:|---|
+| Spectacled cobra (1) / Oriental rat snake (not listed) | 41 | Cobra: hood with the spectacle mark; like all elapids, no loreal scale between the nasal and preocular. Rat snake: two or three loreal scales [15, PDF p. 34]. A threatened rat snake inflates its throat and growls, which may mimic a cobra [29] |
+| Common krait (1) / Indian, Travancore and Russell's wolf snakes (not listed) | 13 + 5 + 4 | WHO names wolf snakes (*Lycodon*) as krait mimics [15, PDF p. 70]. Krait: no loreal scale [15, PDF p. 34] |
+| Russell's viper (1) / rough-scaled sand boa, Indian rock python (not listed) | 5 + 2 | Viper: three rows of large dark, black-edged spots that often join into a chain [30] |
+| Saw-scaled viper (1) / common cat snake (not listed) | 5 | Vipers have many small rough scales on top of the head [15, PDF p. 30], and the saw-scaled viper makes a grating rasp when threatened [15, PDF p. 70] |
+| Spectacled cobra (1) / checkered keelback (not listed) | 4 | Keelback bites are common and confuse medical staff [15, PDF p. 87] |
+| Bamboo pit viper (2) / green keelback (not listed) | 3 | Pit vipers have a heat-sensing pit between the nostril and the eye [15, PDF p. 30] |
+| Hump-nosed pit viper (1) / Malabar pit viper (2), saw-scaled viper (1) | 7 + 1 | Both sides are dangerous, but Indian polyvalent antivenom is raised against the Big Four and may not work on hump-nosed or Malabar pit vipers [15, PDF p. 143]. Hump-nosed bites in Kerala were misidentified as saw-scaled viper bites [31] |
+
+How we will use this:
+
+- At Milestone 5 we report the confusion rate in both directions for each pair above. Dangerous to not-listed counts toward O3; not-listed to dangerous is a false alarm that can get a harmless snake killed.
+- Confusions between two dangerous classes, such as hump-nosed pit viper and saw-scaled viper, are reported separately even though O2 and O3 do not penalise them.
+- We will check Grad-CAM maps for each pair to see whether the model looks at the head and markings. A 2026 study on Indian snakes used Grad-CAM++ this way, and MobileViT-S had the lowest venomous recall of its four models (85.98%) [32], so these pairs are where we test whether MobileViT is good enough.
+- Some classes are also confused with recently split species outside our list (for example *Oligodon tillacki*, *Sahyadriophis uttaraghati* and *Craspedocephalus anamallensis*). These classes go first in the 200-image label check (section 3.3).
+
 ## 4. Existing solutions and comparison
 
 | Option | What it offers | Strengths | Limitations relevant to this project |
@@ -350,6 +371,10 @@ Snake classification has been done at global scale and in mobile and video proto
 26. Spheron (2026). [Google Colab alternatives: 8 GPU clouds compared](https://www.spheron.network/blog/google-colab-alternatives-8-gpu-clouds-compared-2026/). Third-party summary of Colab free-tier limits.
 27. Hugging Face, [Spaces overview](https://huggingface.co/docs/hub/en/spaces-overview), accessed 22 October 2026 (paid plan needed for new Gradio and Docker Spaces; up to 2 free Gradio Spaces on ZeroGPU; static Spaces free).
 28. Ultralytics, [YOLOv8 model page](https://docs.ultralytics.com/models/yolov8/), accessed 22 October 2026 (YOLOv8n: 3.2M parameters, 80.4 ms CPU ONNX at 640 px; the test CPU is not stated).
+29. Young B. A., Solomon J., Abishahin G. (1999). [How many ways can a snake growl? The morphology of sound production in *Ptyas mucosus* and its potential mimicry of *Ophiophagus*](https://www.thebhs.org/publications/the-herpetological-journal/volume-9-number-3-july-1999/1572-01-how-many-ways-can-a-snake-growl-the-morphology-of-sound-production-in-ptyas-mucosus-and-its-potential-mimicry-of-ophiophagus). *Herpetological Journal* 9(3): 89-94.
+30. The Reptile Database, [*Daboia russelii* species account](https://reptile-database.reptarium.cz/species?genus=Daboia&species=russelii), accessed 22 October 2026.
+31. Joseph J. K. et al. (2007). [First authenticated cases of life-threatening envenoming by the hump-nosed pit viper (*Hypnale hypnale*) in India](https://doi.org/10.1016/j.trstmh.2006.03.008). *Transactions of the Royal Society of Tropical Medicine and Hygiene* 101(1): 85-90.
+32. Manna I. I. A. et al. (2026). [Development of a deep learning based framework for classification of Indian venomous snakes integrated with explainable artificial intelligence for primary and emergency care providers](https://doi.org/10.1371/journal.pntd.0014147). *PLOS Neglected Tropical Diseases* 20(6): e0014147.
 
 <div style="page-break-before: always"></div>
 
@@ -362,4 +387,4 @@ Snake classification has been done at global scale and in mobile and video proto
 |Jayesh Bansal|24f100185|![Jayesh Bansal](https://drive.google.com/uc?export=download&id=1imepTm_t9vgJVL367tWU-LPYcLq9Zet0)|22/10/2026|
 |Vikas|23f3001800|Vikas|22/10/2026|
 |Puneet Bajaj|23f3002416|Puneet Bajaj|22/10/2026|
-|Manas Rastogi|  |  |  |
+|Manas Rastogi|22f3001477|![Manas Rastogi](https://drive.google.com/uc?export=download&id=1j9vC0yjI-eb3lGfETUdnK3GAXq77__lT)|22/10/2026|
