@@ -1,31 +1,33 @@
 # Milestone 1: Project Report
 
-Project: SerpentGuard AI, snake detection and classification<br>
+Project: SerpentGuard AI, offline snake detection, classification and safety support<br>
 Team: Group 5, DS and AI Lab Project. Team lead Jayesh Bansal; members Vikas, Puneet Bajaj and Manas Rastogi<br>
 Status: problem definition, literature review and proposed plan. No model has been trained yet.<br>
-Date: 22 October 2026
+Date: 25 October 2026 (updated after Milestone 1 review)
 
 ## 1. Problem statement
 
-Snakebite kills far more people in India than official records show. The Registrar General of India's Million Death Study estimated 46,000 snakebite deaths in 2005 (99% CI 41,000 to 51,000), more than 20 times the official figure [15]. Most encounters with snakes end without a bite, but they often end in panic, in a harmless snake being killed, or in someone walking up to a dangerous snake they took for a harmless one. In the moment, most people cannot tell a spectacled cobra from a rat snake or a common krait from a wolf snake, and these lookalikes carry very different risks.
+Snakebite kills far more people in India than official records show. The Registrar General of India's Million Death Study estimated 46,000 snakebite deaths in 2005 (99% CI 41,000 to 51,000), more than 20 times the official figure [15]. People who encounter a snake may panic, kill a non-venomous species, or approach a venomous one they mistake for a harmless snake. The need is for a cautious, offline decision-support tool that helps a person keep a safe distance, communicate a possible identification and reach emergency help after a bite.
 
-SerpentGuard AI is a two-stage vision system. It finds a snake in a photo or a live camera feed, suggests the species from a fixed list of 27 Indian species, and says when it is unsure. We intend it for decision support and education. It does not diagnose bites or recommend treatment.
+SerpentGuard AI is proposed as an Android-first, fully offline edge application for Indian snake encounters. A compact segmentation and classification pipeline will identify supported species, return confidence, and label species outside its trained set as “unknown”—never as non-venomous. It is intended for cautious decision support and education, not diagnosis or treatment. The project’s research question is whether a phone-sized, custom multi-task model trained with merged Indian data and segmentation supervision can improve useful coverage and safety-aware performance over published and untuned baselines. This direction responds to the TA’s novelty feedback; the claim remains a hypothesis to validate through a paper and code review and measured comparisons.
+
+The motivation applies to people in both rural and urban settings. Some rural residents may recognize familiar local snakes, while urban residents may have less practical exposure; those are hypotheses raised in team discussion, not established evidence. The app should be evaluated for users who need help identifying an unfamiliar snake, without assuming that any population has uniform knowledge or behavior.
 
 ### 1.1 Scope and boundaries
 
 | In scope | Out of scope |
 |---|---|
-| The 27 Indian snake species with at least 200 research-grade, CC-licensed iNaturalist observations each (section 3.1), including all of India's "Big Four" | Species outside the list, which the system reports as "unknown / not supported" |
+| Initial labelled core of 27 Indian snake species with at least 200 research-grade, CC-licensed iNaturalist observations each (section 3.1), with planned dataset expansion by merging compatible subsets from multiple sources | Species outside the model's supported set, which the system reports as "unknown" and never as non-venomous |
 | Two input modes that share the same models: a still photo, and a live camera feed processed frame by frame | Bite diagnosis, dosing, treatment advice, or any claim that an area is safe |
 | Top-3 species, calibrated confidence, an explicit "uncertain" state, and each candidate's WHO medical-importance category | Generated (LLM) text. All safety text is fixed and quoted from official sources |
 | Optional coarse location (Indian state) used to re-rank candidates | Letting location override what the image shows |
-| A demo interface for the course (section 5.1), and an offline on-device export benchmarked on one phone | A mobile app published to an app store |
+| Android-first app, designed to work without internet; offline model-size target of 25–30 MB | iOS support in the first release; a claim that every Indian snake species is identified |
 
 ### 1.2 Stakeholders
 
 | Stakeholder | Interest | How they use or judge the system |
 |---|---|---|
-| People in snake-prone homes, farms and campuses | Knowing whether to keep away and whom to call | Primary users, pointing a phone at the snake from a safe distance |
+| People in homes, farms, campuses and other places where they encounter unfamiliar snakes | Knowing to keep away, treating the prediction as uncertain where needed, and finding help | Primary users; capture only from a safe distance |
 | Snake rescuers and forest department staff | Faster triage of rescue calls from photos sent by the public | Users of the photo mode and a source of real-world feedback |
 | Doctors and first responders | Context only, since species ID never replaces clinical assessment | Not users of the tool, which is one reason diagnosis is out of scope |
 | Herpetologists and citizen-science communities (iNaturalist) | Accurate labels and fewer harmless snakes killed | Source of labels and possible reviewers of hard cases |
@@ -38,13 +40,13 @@ These targets are proposals. We will test them at Milestone 5 on a locked test s
 
 | # | Objective | Metric | Target (proposal) | Basis |
 |---|---|---|---|---|
-| O1 | Identify the 27 species | Macro-F1 / top-3 accuracy | ≥ 0.80 / ≥ 0.93 | A 45-species benchmark reported F1 0.83 [3]. The global ViT reached 92.2% macro-F1 on 772 species with about 386k photos [2] |
+| O1 | Identify supported Indian species (initial core: 27) | Macro-F1 / top-3 accuracy | ≥ 0.80 / ≥ 0.93 | A 45-species benchmark reported F1 0.83 [3]. The global ViT reached 92.2% macro-F1 on 772 species with about 386k photos [2] |
 | O2 | Catch dangerous snakes | Recall of the medically important group: the share of images of the 7 WHO Category 1 and 2 species that are predicted as any of those 7 | ≥ 0.95 | Safety goal, using the WHO SEARO 2016 category list [15] |
 | O3 | Avoid the most harmful error | Share of medically important images predicted as a not-listed species (non-abstained predictions only) | ≤ 2% | Asymmetric error cost, as in SnakeCLEF 2024 [4] |
 | O4 | Know when it does not know | Expected calibration error after temperature scaling; error at 80% coverage; share of out-of-list snakes flagged "unknown" | ECE ≤ 0.05; error ≤ 5%; ≥ 70% flagged | Calibration method [20] |
 | O5 | Find the snake first | Detector precision and recall at IoU 0.5 | ≥ 0.90 each | Prior YOLO work reported 87% to 88% precision [13, 14] |
 | O6 | Work on live video | Pipeline speed; label flips per 10-second clip; time to first stable label | ≥ 10 FPS on a laptop CPU; ≤ 1 flip; ≤ 2 s | Usability goal for the live demo |
-| O7 | Run offline on a phone (stretch) | Size of both exported int8 models; median latency per frame on one mid-range Android phone | ≤ 25 MB; ≤ 150 ms | Edge goal, measured on the device |
+| O7 | Run offline on Android | Total model package size and median latency per frame on one Android phone | 25–30 MB target; latency to be measured and target reset after prototype | Edge goal, measured on the device |
 | O8 | Use location safely | Macro-F1 change with the correct state, and with a missing or wrong state | ≥ +2 points / no worse than −1 point | The global study gained about 3 points from geography [2] |
 
 ### 1.4 Research questions
@@ -53,7 +55,11 @@ These targets are proposals. We will test them at Milestone 5 on a locked test s
 - If we run the same image model on each frame of a live feed and add tracking and smoothing over time, are the labels stable and correct under motion, blur and occlusion?
 - Does calibration plus a reject option keep dangerous-species errors low without abstaining on most images?
 - Does coarse location help with lookalikes, and does it hurt when it is missing or wrong?
-- Can the detector and classifier meet the latency and size targets once exported for on-device use?
+- Can a custom compact segmentation and classification model improve safety-aware performance over untuned baselines while meeting the 25–30 MB offline Android target?
+
+### 1.5 Updated problem statement for the Milestone 1 review
+
+People in India who encounter an unfamiliar snake may not know whether to keep away or whom to contact, while general image classifiers and published global models may not cover local species well and typically need substantial compute or network access. We propose SerpentGuard, an Android-first offline application that detects and segments a snake, classifies supported Indian species, and reports an explicit confidence or “unknown” result for unsupported species. We will merge compatible subsets of multiple datasets, use segmentation masks to train a custom phone-sized architecture, and compare it with untuned baselines and published results. The system will present cautious safety information and an SOS pathway, but will not diagnose bites or recommend treatment. Our objective is to measure whether this design can provide useful identification and reduce unsafe certainty within a 25–30 MB on-device model budget.
 
 ## 2. Problem and existing evidence
 
@@ -194,31 +200,26 @@ General assistants and earlier snake apps already accept camera input. What we a
 
 ## 5. Proposed architecture
 
+The architecture is under investigation following the review. The proposed main path is a segmentation-guided, multi-task student model; exact encoder, decoder and temporal components will be selected by experiments and the novelty review.
+
 ```text
-photo or camera frame ──► YOLOv8n snake detector (1 class, int8 for edge)
-                              │ boxes
-                              ▼
-                      ByteTrack: one ID per snake across frames (video only)
-                              │ crop per track
-                              ▼
-                      MobileViT classifier: 27 species + calibrated softmax
-                              │ per-frame probabilities
-                              ▼
-          temporal smoothing: average over the last ~15 frames of a track
-                              │
-                              ▼
-       decision: top-3 + WHO category, or "uncertain" / "unknown" / "no snake"
-                              │
-                              ▼
-         fixed safety text from an offline knowledge base (quoted, not generated)
+photo or video frame
+  -> compact shared encoder
+  -> snake mask head (SAM-generated masks supervise training; SAM is not required on device)
+  -> mask-guided species / genus / danger heads
+  -> calibrated confidence; unsupported or low-confidence result = "unknown"
+  -> for video, aggregate frame predictions (majority vote baseline; temporal mask reuse under study)
+  -> fixed offline safety guidance and optional SOS actions
 ```
 
-- Detector: YOLOv8n fine-tuned as a single-class snake detector on Open Images and Roboflow boxes, with ByteTrack tracking as provided by Ultralytics [21, 22]. Photo mode runs the same detector on a single frame.
-- Classifier: MobileViT [23], chosen because it is small enough for a phone. The baselines are ResNet-50 and EfficientNet-B0. We will compare full fine-tuning with LoRA [24] in Milestone 4.
-- Calibration and abstention: temperature scaling on the validation split [20]. The system shows a label only when the smoothed top-1 probability passes a threshold set on validation data to meet the O4 coverage target.
+- Segmentation supervision: investigate Meta Segment Anything (SAM) to generate candidate snake masks for training photos, with a manually reviewed sample and quality report. SAM is a training-time annotation aid, not the proposed phone model.
+- Student model: train a custom compact shared encoder and segmentation/species heads; MobileViT (“mobile with” in the meeting notes) is one candidate encoder, alongside lightweight segmentation baselines. YOLOv8n-seg remains a baseline rather than the proposed primary approach.
+- Dataset: merge compatible, licensed subsets from multiple datasets, deduplicate and retain provenance and licence metadata. The initial 27-species collection is not a claim of adequate coverage of India's roughly 300–400+ species; supported coverage and rare-class performance will be reported explicitly.
+- Video: process frames and use majority vote as the initial temporal baseline; assess tracking or mask reuse only if it fits the edge budget.
+- Calibration and abstention: temperature scaling on the validation split [20]. The system shows a label only when the aggregated top-1 probability passes a threshold set on validation data to meet the O4 coverage target.
 - Location (optional): candidates are re-ranked by how often each species appears in each state, counted on the training split only.
 - Safety knowledge base: species facts and first-aid text quoted word for word from official sources such as WHO SEARO 2016 [15], always shown with the source. The system generates no text, and "no snake detected" is never shown as "safe".
-- Deployment: a Gradio demo interface with photo upload and webcam input, which meets the Milestone 6 requirement (section 5.1 covers where it runs). As a stretch goal, both models are exported to TFLite or ONNX int8 and benchmarked on one Android phone (O7).
+- Deployment: Android-first, with a fully offline on-device pipeline. Target total model package is 25–30 MB (the precise accounting boundary—weights only or runtime assets included—will be stated in the benchmark). iOS may be considered after the Android milestone.
 
 ### 5.1 Compute plan: Kaggle and Colab only
 
@@ -234,14 +235,11 @@ We have no paid compute, so every step must fit the free tiers of Kaggle and Goo
 | Run detector, tracker and classifier on the 540 clips | Kaggle T4 | Under an hour |
 | Export int8 TFLite/ONNX models | Colab | Minutes |
 
-The GPU figures are estimates. They assume a T4 trains these small models at a few hundred images per second, and we will measure the real rate in Milestone 3. Even at double the estimate, about 45 GPU hours, the training fits in the two weeks of Milestones 3 and 4 on one account, and the team has four accounts.
-
-Two things cannot run on Kaggle or Colab alone:
-
-- The live webcam demo. A notebook runs on a remote machine, so every camera frame would have to travel from the browser to it and back. The demo therefore runs as a Gradio app on a team member's laptop (CPU), which is also where O6 is measured. YOLOv8n's published CPU time is 80.4 ms per 640-pixel frame [28]; at a 320 to 416-pixel input and with the classifier run on tracked crops, 10 FPS is a reasonable target, to be confirmed in Milestone 3. For a hosted link, Hugging Face now requires a paid plan for new Gradio Spaces on CPU, but free accounts can host up to 2 Gradio Spaces on ZeroGPU, and static Spaces are free [27]. We will use a ZeroGPU Space for the photo demo, or a free static Space that runs the ONNX models in the browser.
-- The phone benchmark (O7) needs an Android phone. If MobileViT does not convert cleanly to TFLite, we will export a MobileNetV3 classifier for the phone build and report the accuracy difference.
+GPU estimates will be revised after the SAM mask pilot and first custom-model run. Kaggle or Colab may be used for training and preprocessing, but end-user inference is intended to run locally on Android with no internet connection. Android device access and the final export/runtime choice are prerequisites for validating the 25–30 MB and latency targets. The project does not depend on a hosted Gradio or web demo.
 
 ## 6. Baselines and evaluation plan
+
+The required comparison matrix will separate published scores on their original datasets from untuned baselines run on our locked test set and from our trained approaches. Each row will record task, dataset/classes, metric and score, whether weights are released, model size, compute/device, and comparability limits. Published scores will not be presented as directly comparable unless the test set and protocol match.
 
 ### 6.1 Published external baselines
 
@@ -319,27 +317,40 @@ When the snake is partly hidden or the top candidates are close, the system show
 
 | Gap in existing work | Opportunity | Planned response |
 |---|---|---|
-| Long-tailed data and weak coverage of rare species | Class-aware training and evaluation | A fixed 27-class list with at least 200 observations each; other species become "unknown"; per-class metrics |
+| Long-tailed data and weak coverage of rare species | Merge compatible subsets and measure supported coverage honestly | Start from 27 classes with at least 200 observations; expand only when label and sample quality allow. Unsupported species are "unknown", never “non-venomous”; report per-class metrics |
 | Geographic bias (77% of the global set is from the US and Canada) | A bounded Indian use case | Indian-only training and test data, compared with the global model on the same images |
 | Similar-looking species with different risk | Explicit error costs | Recall on WHO-category species (O2) and the dangerous-as-not-listed error rate (O3); abstain when ambiguous |
 | Benchmark images are cleaner than field photos | Harder test conditions | Results by image quality; synthetic blur, low light and occlusion; re-captured clips |
 | High headline accuracy hides overconfidence | Calibrated, communicated uncertainty | Temperature scaling, a reject option and risk-coverage reporting |
-| The global model is too large for a phone (about 1.1 GB) | Compact, exportable models | YOLOv8n and MobileViT with int8 export, with size and latency measured (O7) |
+| The global model is too large for a phone (about 1.1 GB) | Compact, exportable models | Custom segmentation/classification student, with size and latency measured against the 25–30 MB target (O7) |
 | General assistants already take camera input | Compete on measured behaviour | The same models on photos and every live frame, with stability metrics (O6) |
 | Live video flickers and can be confidently wrong | Tracking, smoothing and abstention | ByteTrack, frame voting and an "uncertain" state, scored with clip-level metrics |
 | Hosted LLMs need a network and can generate unsafe text | No LLM in the loop | Offline models and fixed, quoted safety text only |
 
+## 8.1 Review feedback and proposed product features
+
+The review identified a novelty gap: a conventional YOLO detector followed by a classifier resembles common detection/classification projects. In response, the team will manually inspect relevant papers and GitHub repositories, build a comparison matrix of untuned baselines and best published scores, and investigate SAM-assisted mask generation followed by a custom segmentation/classification architecture. Merging subsets of multiple datasets is planned, subject to compatible labels, licences, and duplicate checks. No novelty claim is final until this review and same-test-set comparisons are complete.
+
+The following are proposed features for the updated proposal; feasibility and safe offline behavior still require design work:
+
+- Bite SOS: provide a one-tap path to emergency contacts and hospitals/ambulance services. Calling or SMS requires cellular service; “offline” means no internet or mobile data is assumed, not that calls work without signal. The app should show vetted, sourced emergency guidance and must not provide diagnosis or treatment instructions.
+- Device-to-device alerts: investigate Android peer-to-peer communication for opt-in, short-lived nearby snake alerts that can be relayed between app users. Location sharing requires user consent and controls for expiry, distance and false reports.
+- Crowd review: let users submit an unknown observation for review. The suggested threshold—about 70% agreement from 10–20 voters—is a proposal only. It should not automatically change the production model; labels need moderation and provenance before inclusion in a future dataset.
+- Local Qwen 2.5 0.5B: suggested for general snake information, but not committed. Any use must be evaluated for offline size and must not generate first-aid or treatment advice; safety-critical text remains fixed and sourced.
+
+The team discussed whether city residents may benefit particularly because rural residents might know local species. This is not an evidence-backed segmentation of users; the proposal targets anyone facing an unfamiliar snake and leaves user research to validate differing needs.
+
 ## 9. Conclusion and milestone plan
 
-Snake classification has been done at global scale and in mobile and video prototypes, and general assistants already accept camera input. Our contribution is a measured system scoped to India: one detector and one classifier that work on photos and on every live frame, with calibrated abstention and an explicit dangerous-species error metric, compared on the same images against the released global model. The data for the core system is public (section 3.1). The one gap, labelled snake video, we cover by building clips from test images (section 3.4).
+Snake classification, camera input and YOLO-based detection are established directions, and the TA specifically asked us to address the lack of novelty. We therefore propose to investigate segmentation-supervised training of a custom compact model, merge multiple data sources, and compare against untuned baselines and published results. These are proposed contributions, not established novelty claims; the team must manually review relevant papers and repositories and report what is genuinely distinct. The product direction is Android-first and offline, with explicit unknown handling and safety-aware SOS and community-review concepts.
 
 | Milestone (due) | Deliverable | Done when |
 |---|---|---|
-| M2 Dataset (29 Oct) | Download and manifest scripts, EDA notebook, grouped splits, leakage check, WHO labels, synthetic-clip generator | The leakage script reports 0 overlaps and the class-count table matches the manifest |
-| M3 Architecture (5 Nov) | The detector, tracker and classifier pipeline run end to end on a data subset and on one synthetic clip | One command produces labelled frames and metrics on the subset |
+| M2 Dataset (29 Oct) | Preprocessed, cleaned, model-ready dataset; merged-source manifest and licence audit; grouped splits and leakage check; SAM mask pilot with 500 masks manually reviewed | Dataset build report records species counts, source provenance, exclusions, leakage results and mask quality |
+| M3 Architecture (5 Nov) | Segmentation and compact-model baselines, with end-to-end Android feasibility study | Reproducible comparison on a fixed subset with accuracy, mask quality, size and latency |
 | M4 Training (19 Nov) | Baselines, MobileViT full fine-tuning against LoRA, augmentation and regularisation sweeps, detector training | A hyperparameter table with at least 6 runs, with checkpoints and configs saved |
 | M5 Evaluation (26 Nov) | All metrics in section 6.5 against targets O1 to O8, the PLOS baseline, and error analysis | Every target reported as met or missed, with confidence intervals |
-| M6 Deployment (10 Dec) | Gradio demo (laptop for live video, a free Hugging Face Space for photos), offline export benchmark, documentation | A working demo link and a latency table from one phone |
+| M6 Deployment (10 Dec) | Android-first offline application prototype; SOS and device-to-device alert proof of concept if feasible | A working Android build, documented offline behavior and on-device latency/model-size results |
 
 ## References
 
