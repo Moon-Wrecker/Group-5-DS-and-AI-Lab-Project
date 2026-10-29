@@ -1,0 +1,58 @@
+{
+ "raw_photos": 182497,
+ "dropped": {
+  "exact_duplicate": 928,
+  "too_small": 36,
+  "duplicate_conflicting_species": 30
+ },
+ "kept_photos": 181503,
+ "classes": 208,
+ "tier1_classes": 68,
+ "tier2_classes": 140,
+ "m1_core27_classes": 27,
+ "who_category_classes": {
+  "not_listed": 191,
+  "2": 11,
+  "1": 6
+ },
+ "unknown_pool_species": 81,
+ "unknown_pool_photos": 656,
+ "split_photos": {
+  "train": 129241,
+  "val": 25803,
+  "test_extra": 18465,
+  "test": 7338,
+  "unknown_pool": 656
+ },
+ "split_observations": {
+  "test": 3985,
+  "test_extra": 9883,
+  "train": 68122,
+  "unknown_pool": 354,
+  "val": 13533
+ },
+ "split_observers": {
+  "test": 770,
+  "test_extra": 2928,
+  "train": 17856,
+  "unknown_pool": 231,
+  "val": 3602
+ },
+ "classes_with_zero_test": 28,
+ "classes_with_zero_val": 1,
+ "cc_licensed_photos": 124764,
+ "leakage": {
+  "obs_id_in_more_than_one_split": 0,
+  "observer_id_in_more_than_one_split": 122,
+  "sha1_in_more_than_one_split": 0
+ },
+ "rules": {
+  "min_bytes": 5000,
+  "min_side_px": 100,
+  "min_photos_per_class": 20,
+  "tier1_min_photos": 400,
+  "folds": 7,
+  "seed": 42,
+  "test_created_from": "2022-01-01"
+ }
+}

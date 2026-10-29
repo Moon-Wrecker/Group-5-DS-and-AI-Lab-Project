@@ -22,7 +22,7 @@ Each member's weekly contributions are in [work-contribution-log.md](work-contri
 | # | Milestone | Due (2026) | Status | Documents |
 |---|---|---|---|---|
 | 1 | Problem definition and literature review | 22 Oct | Submitted | [Report](documentation/milestone%201/project-report.md) · [Slides](documentation/milestone%201/assets/SerpentGuard_AI_Group5_Presentation.pdf) |
-| 2 | Dataset preparation | 29 Oct | Planned | |
+| 2 | Dataset preparation | 29 Oct | Submitted | [Report](documentation/milestone%202/project-report.md) · [Notebooks](notebooks/README.md) |
 | 3 | Model architecture and end-to-end pipeline | 5 Nov | Planned | |
 | 4 | Model training | 19 Nov | Planned | |
 | 5 | Evaluation and analysis | 26 Nov | Planned | |
@@ -34,11 +34,14 @@ Course requirements: [guidelines](https://bsc-iitm.github.io/dsai-lab-project/gu
 
 ```text
 documentation/          milestone reports and slides (one folder per milestone)
+notebooks/              Kaggle notebook chain (01 raw build, 02 split, 03 process, 04 snake masks)
+                        and load_dataset_example.ipynb for EDA and training notebooks
+data/                   class table and split report (images live on Kaggle, never in git)
 work-contribution-log.md  weekly per-member contributions
 ```
 
-Training scripts, inference notebooks, configs and the data manifest arrive from Milestone 2 onward, and this README will explain how to run them.
+Each notebook attaches its inputs by handle, does one job and saves its output as a private Kaggle dataset; see [notebooks/README.md](notebooks/README.md). EDA and training notebooks start from `notebooks/load_dataset_example.ipynb`.
 
 ## Data and licences
 
-Training images come from iNaturalist research-grade observations with CC0 or CC-BY family licences, plus Open Images V7 and the other sources listed in the [Milestone 1 report](documentation/milestone%201/project-report.md#32-sources-by-task). We never commit the images. The repository holds a manifest (observation id, photo id, licence, source URL) and a script that downloads them, and each image keeps its original licence and attribution. Some of those licences are non-commercial, so the project is for academic use only.
+Training images come from iNaturalist research-grade observations of the 289 snake species recorded in India, with photos from anywhere in the world ([Milestone 2 report](documentation/milestone%202/project-report.md)). Each photo keeps its photographer's licence and attribution, recorded per photo in `metadata.csv`: 69% are Creative Commons and 31% are all rights reserved. The images are kept in private Kaggle datasets shared with the team and course staff, never committed here, and used only for this non-commercial course project. The `cc_licensed` column selects a Creative Commons-only subset.

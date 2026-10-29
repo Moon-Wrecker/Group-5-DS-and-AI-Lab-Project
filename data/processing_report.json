@@ -1,0 +1,33 @@
+{
+ "minutes": 15.0,
+ "input_rows": 181503,
+ "status": {
+  "kept": 181231,
+  "near_duplicate": 272
+ },
+ "near_duplicates_by_split": {
+  "val": 164,
+  "test_extra": 75,
+  "test": 33
+ },
+ "sha1_mismatches_among_kept": 0,
+ "kept_by_split": {
+  "train": 129241,
+  "val": 25639,
+  "test_extra": 18390,
+  "test": 7305,
+  "unknown_pool": 656
+ },
+ "classes": 208,
+ "classes_by_tier": {
+  "tier2": 140,
+  "tier1": 68
+ },
+ "leakage": {
+  "observer_id_in_more_than_one_of_train_val_testfold": 0,
+  "obs_id_in_more_than_one_of_train_val_testfold": 0,
+  "sha1_in_more_than_one_of_train_val_testfold": 0,
+  "phash_in_more_than_one_of_train_val_testfold": 0
+ },
+ "bytes_zip": 24400780204
+}
