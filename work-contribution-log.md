@@ -17,13 +17,14 @@ The course asks for this log to be updated every week with each member's contrib
 | Reproducibility | Wrote the notebook chain in [`notebooks/`](notebooks/README.md) (01 raw build, 02 split, 03 process, plus a loader for EDA and training); checked that it rebuilds the processed dataset exactly, and pinned scikit-learn so the split reproduces | Puneet Bajaj | 29 Oct 2026 | Jayesh Bansal |
 | Report | Milestone 2 report sections 1 to 4 and 6 to 8 (dataset documentation, splits, folder structure, reproducibility) | Puneet Bajaj, Jayesh Bansal | 29 Oct 2026 | Jayesh Bansal |
 | Snake masks | Built [`notebooks/04_sam_masks.ipynb`](notebooks/04_sam_masks.ipynb) (Grounding DINO and SAM 2.1); ran a 500-photo pilot through four versions (hand removal, single-box rule, quality flags, two-GPU speed-up) and started the full sharded run | Puneet Bajaj | 29 Oct 2026 | Jayesh Bansal |
+| Presentation | Prepared the Milestone 2 dataset presentation slides ([`SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf`](documentation/milestone%202/SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf)) | Vikas | 29 Oct 2026 | Vikas |
 
 ### Milestone 2 acknowledgment
 
 | Team member name | Roll Number | Signature / acknowledgment | Date |
 |---|---|---|---|
 |Jayesh Bansal|24f100185|![Jayesh Bansal](https://drive.google.com/uc?export=download&id=1imepTm_t9vgJVL367tWU-LPYcLq9Zet0)|29/10/2026|
-| Vikas | 23f3001800 | | |
+| Vikas | 23f3001800 | Vikas | 29/10/2026 |
 | Puneet Bajaj | 23f3002416 | | |
 | Manas Rastogi | 22f3001477 | | |
 
