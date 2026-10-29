@@ -337,7 +337,8 @@ The pipeline is a chain of Kaggle notebooks in [`notebooks/`](../../notebooks/RE
 | [`01_build_raw_dataset`](../../notebooks/01_build_raw_dataset.ipynb) | iNaturalist API | `serpentguard-indian-snakes` | about 2.5 h on CPU |
 | [`02_clean_and_split`](../../notebooks/02_clean_and_split.ipynb) | 01 | `serpentguard-m2-splits` | about 3 min on CPU |
 | [`03_process_dataset`](../../notebooks/03_process_dataset.ipynb) | 01 and 02 | `serpentguard-indian-snakes-processed` | about 35 min on CPU |
-| [`04_sam_masks`](../../notebooks/04_sam_masks.ipynb) | 01 and 02 | snake masks (section 9) | about 1 h per shard on two T4 GPUs |
+| [`04_sam_masks`](../../notebooks/04_sam_masks.ipynb) | 01 and 02 | snake masks per shard (section 9) | about 40 min per shard on two T4 GPUs |
+| [`05_merge_sam_masks`](../../notebooks/05_merge_sam_masks.ipynb) | the 04 shards | `serpentguard-sam-masks` | a few minutes on CPU |
 | [`load_dataset_example`](../../notebooks/load_dataset_example.ipynb) | 02 and 03 | nothing; the starting point for EDA and training notebooks | about a minute |
 
 Every random choice uses a fixed seed (42 for splits, 7 for samples). The cleaning steps, labels and class list reproduce exactly. The fold each photographer lands in also depends on the scikit-learn version, because `StratifiedGroupKFold` shuffling differs between releases:
@@ -352,7 +353,9 @@ Notebook 02 therefore installs scikit-learn 1.9.1 before it splits, and checks i
 - **Segmentation masks.** [`notebooks/04_sam_masks.ipynb`](../../notebooks/04_sam_masks.ipynb) makes snake masks for training photos with Grounding DINO (prompt "a snake.") and SAM 2.1. SAM 3 accepts text prompts directly, but its weights are gated behind a manual access request, so we use the open SAM 2.1.
   - The 500-photo pilot went through four versions. The first showed three failure types: hands included when someone holds the snake, background leaking in when several boxes were merged, and photos that show something other than a snake (shed skins, another animal).
   - The current version keeps one snake box, subtracts hands and gloves found by a separate detector pass, and flags doubtful masks (low detector score, a mask filling too little or too much of its box or photo). On the pilot it found a snake in 486 of 500 photos, flagged 95 for review, and ran at 0.39 seconds per photo on two T4 GPUs.
-  - The full run (up to 200 training photos per class, 25,478 photos) is running in three shards across team accounts. The team will hand-check the flagged masks (`review.csv`) in Milestone 3, before the masks train the segmentation head.
+  - The full run covered up to 200 training photos per class: 25,478 photos of all 208 classes, in three shards run on three team accounts and merged into the private dataset `puneetbajajiitm/serpentguard-sam-masks`. 24,907 photos got a mask (97.8%); for 571 the detector found no snake; hands or gloves were cut out of 1,034 masks; 5,387 masks (21.1%) are flagged, leaving 20,091 ready to use.
+  - A random sample of 40 masks matched their photo's size, held only snake and background values and was never empty. No mask exists for a photo where no snake was found, and none for any validation or test photo.
+  - The team will hand-check the flagged masks in Milestone 3, before the masks train the segmentation head.
 - **Label noise.** Research grade applies to observations, so some photos show habitat, shed skin or a second animal. We will hand-check a stratified sample of 200 photos in Milestone 3 and report the error rate.
 - **Taxonomic change.** Species splits after older records (for example the king cobra in 2024) mean some older photos may sit under the parent species.
 - **Sources not yet included.** The HerpMapper and Flickr photos from SnakeCLEF 2021, and the India Biodiversity Portal, as explained in section 1.2.
