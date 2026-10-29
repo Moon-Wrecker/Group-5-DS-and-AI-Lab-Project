@@ -379,7 +379,7 @@ Notebook 02 therefore installs scikit-learn 1.9.1 before it splits, and checks i
 
 | Team member name | Roll Number | Signature / acknowledgment | Date |
 |---|---|---|---|
-| Jayesh Bansal | 24f100185 | | |
+|Jayesh Bansal|24f100185|![Jayesh Bansal](https://drive.google.com/uc?export=download&id=1imepTm_t9vgJVL367tWU-LPYcLq9Zet0)|29/10/2026|
 | Vikas | 23f3001800 | | |
 | Puneet Bajaj | 23f3002416 | | |
 | Manas Rastogi | 22f3001477 | | |
