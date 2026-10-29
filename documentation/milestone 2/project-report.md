@@ -19,6 +19,7 @@ We built our dataset from iNaturalist research-grade observations: every photo, 
 | Split (photos) | train 129,241 · validation 25,639 · test 7,305 · test_extra 18,390 |
 | Processed dataset | Private Kaggle dataset `puneetbajajiitm/serpentguard-indian-snakes-processed` (section 7) |
 | Rebuild | Notebooks 01 to 04 in [`notebooks/`](../../notebooks/README.md) |
+| Presentation | [`SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf`](SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf) |
 
 ## 1. Dataset selected
 
@@ -380,6 +381,6 @@ Notebook 02 therefore installs scikit-learn 1.9.1 before it splits, and checks i
 | Team member name | Roll Number | Signature / acknowledgment | Date |
 |---|---|---|---|
 | Jayesh Bansal | 24f100185 | | |
-| Vikas | 23f3001800 | | |
+| Vikas | 23f3001800 | Vikas | 29/10/2026 |
 | Puneet Bajaj | 23f3002416 | | |
 | Manas Rastogi | 22f3001477 | | |
