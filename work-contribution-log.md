@@ -5,6 +5,28 @@ Team: Group 5, DS and AI Lab Project. Team lead Jayesh Bansal; members Vikas, Pu
 
 The course asks for this log to be updated every week with each member's contributions. Add each new week above the previous one. Members check their own rows, and everyone also signs the acknowledgment page of each milestone report.
 
+## Week 2: 23 to 29 October 2026 (Milestone 2, dataset preparation)
+
+### Contribution entries
+
+| Work item | Contribution / evidence | Contributor(s) | Date or period | Reviewed / confirmed by |
+|---|---|---|---|---|
+| Dataset build | Collected every research-grade iNaturalist photo of the 289 snake species recorded in India (182,497 photos, 0 failed) into a private Kaggle dataset, and checked 30 random photos (SHA-1 and size) and 8 species counts against iNaturalist | Puneet Bajaj | 24 to 25 Oct 2026 | |
+| Cleaning and splits | Removed duplicates, conflicting labels and tiny files; added genus, family, WHO category and tiers; built photographer-grouped train, validation and test splits with leakage checks ([`data/split_report.json`](data/split_report.json)) | Puneet Bajaj | 29 Oct 2026 | |
+| Processed dataset | Kaggle processing run with near-duplicate removal, final folder layout, sample grids and the private processed dataset | Puneet Bajaj | 29 Oct 2026 | |
+| Reproducibility | Wrote [`notebooks/m2_dataset_pipeline.ipynb`](notebooks/m2_dataset_pipeline.ipynb), which rebuilds the dataset; checked that it reproduces the splits exactly | Puneet Bajaj | 29 Oct 2026 | |
+| Report | Milestone 2 report sections 1 to 4 and 6 to 8 (dataset documentation, splits, folder structure, reproducibility) | Puneet Bajaj, Jayesh Bansal | 29 Oct 2026 | |
+| Snake masks | Built [`notebooks/m2_sam_masks.ipynb`](notebooks/m2_sam_masks.ipynb) (Grounding DINO and SAM 2.1); ran a 500-photo pilot through four versions (hand removal, single-box rule, quality flags, two-GPU speed-up) and started the full sharded run | Puneet Bajaj | 29 Oct 2026 | |
+
+### Milestone 2 acknowledgment
+
+| Team member name | Roll Number | Signature / acknowledgment | Date |
+|---|---|---|---|
+| Jayesh Bansal | 24f100185 | | |
+| Vikas | 23f3001800 | | |
+| Puneet Bajaj | 23f3002416 | | |
+| Manas Rastogi | 22f3001477 | | |
+
 ## Week 1: 18 to 22 October 2026 (Milestone 1, problem definition and literature review)
 
 ### Contribution entries
