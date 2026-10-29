@@ -11,12 +11,12 @@ The course asks for this log to be updated every week with each member's contrib
 
 | Work item | Contribution / evidence | Contributor(s) | Date or period | Reviewed / confirmed by |
 |---|---|---|---|---|
-| Dataset build | Collected every research-grade iNaturalist photo of the 289 snake species recorded in India (182,497 photos, 0 failed) into a private Kaggle dataset, and checked 30 random photos (SHA-1 and size) and 8 species counts against iNaturalist | Puneet Bajaj | 24 to 25 Oct 2026 | |
-| Cleaning and splits | Removed duplicates, conflicting labels and tiny files; added genus, family, WHO category and tiers; built photographer-grouped train, validation and test splits with leakage checks ([`data/split_report.json`](data/split_report.json)) | Puneet Bajaj | 29 Oct 2026 | |
-| Processed dataset | Kaggle processing run with near-duplicate removal, final folder layout, sample grids and the private processed dataset | Puneet Bajaj | 29 Oct 2026 | |
-| Reproducibility | Wrote the notebook chain in [`notebooks/`](notebooks/README.md) (01 raw build, 02 split, 03 process, plus a loader for EDA and training); checked that it rebuilds the processed dataset exactly, and pinned scikit-learn so the split reproduces | Puneet Bajaj | 29 Oct 2026 | |
-| Report | Milestone 2 report sections 1 to 4 and 6 to 8 (dataset documentation, splits, folder structure, reproducibility) | Puneet Bajaj, Jayesh Bansal | 29 Oct 2026 | |
-| Snake masks | Built [`notebooks/04_sam_masks.ipynb`](notebooks/04_sam_masks.ipynb) (Grounding DINO and SAM 2.1); ran a 500-photo pilot through four versions (hand removal, single-box rule, quality flags, two-GPU speed-up) and started the full sharded run | Puneet Bajaj | 29 Oct 2026 | |
+| Dataset build | Collected every research-grade iNaturalist photo of the 289 snake species recorded in India (182,497 photos, 0 failed) into a private Kaggle dataset, and checked 30 random photos (SHA-1 and size) and 8 species counts against iNaturalist | Puneet Bajaj, Jayesh Bansal | 24 to 25 Oct 2026 | Jayesh Bansal |
+| Cleaning and splits | Removed duplicates, conflicting labels and tiny files; added genus, family, WHO category and tiers; built photographer-grouped train, validation and test splits with leakage checks ([`data/split_report.json`](data/split_report.json)) | Puneet Bajaj | 29 Oct 2026 | Jayesh Bansal |
+| Processed dataset | Kaggle processing run with near-duplicate removal, final folder layout, sample grids and the private processed dataset | Puneet Bajaj | 29 Oct 2026 | Jayesh Bansal |
+| Reproducibility | Wrote the notebook chain in [`notebooks/`](notebooks/README.md) (01 raw build, 02 split, 03 process, plus a loader for EDA and training); checked that it rebuilds the processed dataset exactly, and pinned scikit-learn so the split reproduces | Puneet Bajaj | 29 Oct 2026 | Jayesh Bansal |
+| Report | Milestone 2 report sections 1 to 4 and 6 to 8 (dataset documentation, splits, folder structure, reproducibility) | Puneet Bajaj, Jayesh Bansal | 29 Oct 2026 | Jayesh Bansal |
+| Snake masks | Built [`notebooks/04_sam_masks.ipynb`](notebooks/04_sam_masks.ipynb) (Grounding DINO and SAM 2.1); ran a 500-photo pilot through four versions (hand removal, single-box rule, quality flags, two-GPU speed-up) and started the full sharded run | Puneet Bajaj | 29 Oct 2026 | Jayesh Bansal |
 
 ### Milestone 2 acknowledgment
 
