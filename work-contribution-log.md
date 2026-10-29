@@ -18,6 +18,14 @@ The course asks for this log to be updated every week with each member's contrib
 | Report | Milestone 2 report sections 1 to 4 and 6 to 8 (dataset documentation, splits, folder structure, reproducibility) | Puneet Bajaj, Jayesh Bansal | 29 Oct 2026 | |
 | Snake masks | Built [`notebooks/04_sam_masks.ipynb`](notebooks/04_sam_masks.ipynb) (Grounding DINO and SAM 2.1); ran a 500-photo pilot through four versions (hand removal, single-box rule, quality flags, two-GPU speed-up) and started the full sharded run | Puneet Bajaj | 29 Oct 2026 | |
 | Presentation | Prepared the Milestone 2 dataset presentation slides ([`SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf`](documentation/milestone%202/SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf)) | Vikas | 29 Oct 2026 | Vikas |
+| EDA notebook | Wrote and published comprehensive 18-section EDA notebook covering species distribution, WHO categories, split balance, image quality, geographic distribution, temporal patterns, observer diversity, family taxonomy, excluded photos, lookalike pairs, and class imbalance analysis. Pushed to Kaggle notebook wreckermoon/group-5-2026t3-dsai-lab. | Manas Rastogi | 29 Oct 2026 | Manas Rastogi |
+| Extended sources plan | Researched and documented all additional data sources beyond iNaturalist: SnakeCLEF 2021/2023/2024, Open Images V7, GBIF India, Roboflow Universe, India-specific Kaggle datasets. Created notebooks 08 and 09 for extended data pull and cross-source deduplication. | Manas Rastogi | 29 Oct 2026 | Manas Rastogi |
+
+### Member contribution summary
+
+| Member name | Work completed | Evidence / report sections | Member confirmation |
+|---|---|---||---|
+| Manas Rastogi | EDA notebook (18 sections); extended sources discovery and notebooks 08+09 | wreckermoon/group-5-2026t3-dsai-lab on Kaggle; notebooks/08_extended_sources.ipynb; notebooks/09_combine_and_reclean.ipynb | Manas Rastogi |
 
 ### Milestone 2 acknowledgment
 
@@ -64,3 +72,4 @@ By signing, each member confirms that they have reviewed this log, that their ow
 | Vikas | 23f3001800 | Vikas | 22/10/2026 |
 | Puneet Bajaj | 23f3002416 | Puneet Bajaj | 22/10/2026 |
 | Manas Rastogi | 22f3001477 | ![Manas Rastogi](https://drive.google.com/uc?export=download&id=1j9vC0yjI-eb3lGfETUdnK3GAXq77__lT) | 22/10/2026 |
+
