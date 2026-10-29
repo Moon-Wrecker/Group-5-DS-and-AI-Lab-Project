@@ -18,7 +18,7 @@ We built our dataset from iNaturalist research-grade observations: every photo, 
 | Unknown pool | 81 species, 656 photos, never used for training |
 | Split (photos) | train 129,241 · validation 25,639 · test 7,305 · test_extra 18,390 |
 | Processed dataset | Private Kaggle dataset `puneetbajajiitm/serpentguard-indian-snakes-processed` (section 7) |
-| Rebuild | [`notebooks/m2_dataset_pipeline.ipynb`](../../notebooks/m2_dataset_pipeline.ipynb) |
+| Rebuild | Notebooks 01 to 04 in [`notebooks/`](../../notebooks/README.md) |
 
 ## 1. Dataset selected
 
@@ -173,6 +173,55 @@ The data is long-tailed. The largest class, the Brahminy blind snake (*Indotyphl
 | `license`, `cc_licensed`, `attribution`, `url` | licence and credit for each photo |
 | `width`, `height`, `bytes`, `sha1`, `phash` | image size and fingerprints used for deduplication |
 
+### 3.5 Distribution of key attributes
+
+| Attribute | Distribution (photos in the 208 classes, 180,575) |
+|---|---|
+| Family | Colubridae 91,152 · Viperidae 22,624 · Typhlopidae 18,898 · Elapidae 18,528 · Pythonidae 9,874 · Psammodynastidae 7,086 · 7 smaller families 12,413 |
+| WHO category (India) | Category 1: 13,630 (7.5%) · Category 2: 9,332 (5.2%) · not listed: 157,613 (87.3%) |
+| Where taken | India 37.7% · outside India 62.3% (all splits; the test set is India only) |
+| Year observed (all 181,231 photos) | up to 2015: 8,214 · 2016 to 2019: 15,195 · 2020 to 2021: 20,636 · 2022 to 2023: 38,268 · 2024 to 2026: 98,918 |
+| Photo position | 52.8% are the first photo of their observation; the rest are later photos, which more often show habitat, a hand or a detail |
+
+The class distribution is long-tailed (section 3.2), so the planned training uses class-balanced sampling or loss weighting, and the headline metric is macro-F1, which weights every class equally.
+
+### 3.6 Data quality
+
+| Check | What we found | How it is handled |
+|---|---|---|
+| Missing values | Every photo has its species, licence, attribution, observer, dates, size and checksum. Coordinates are missing for 1,488 photos (0.8%) and obscured by iNaturalist for 33,061 (18%) | Location is optional (only used by the planned state prior), so these photos stay |
+| Inconsistent labels | 30 photos had identical bytes under two different species | Removed (section 3.1) |
+| Taxonomic level | 8,578 photos were identified to a subspecies, for example *Echis carinatus carinatus* | Each species was queried by taxon id, which includes its subspecies, so they carry the species label; `record_taxon` keeps the original identification |
+| Taxonomic changes | Renamed genera (*Xenochrophis* to *Fowlea*, *Trimeresurus* to *Craspedocephalus*) and the 2024 king cobra split | Labels follow iNaturalist's taxonomy on 24 October 2026, by taxon id |
+| Duplicates | 928 exact duplicates; 272 near-duplicates across splits | Removed (sections 3.1 and 5) |
+| Label noise | Research grade applies to the observation, not each photo. In the 500-photo segmentation pilot, roughly 2% of photos did not show a live snake (shed skins, another animal, footwear) | Kept for now; `photo_position` marks later photos; a stratified hand-check of 200 photos is planned for Milestone 3; mask quality flags keep non-snake photos out of mask training |
+| Image quality | 36 photos too small or too low in resolution; every remaining photo decodes and matches its SHA-1 | Removed; verified during processing |
+
+### 3.7 Is the dataset adequate?
+
+- **Species classification:** adequate for the 68 tier-1 classes, which have at least 400 photos each (enough to fine-tune a pretrained backbone) and an Indian test set for 57 of them. The 140 tier-2 classes are too small for standard training, so the plan uses few-shot methods for them and falls back to genus and danger level.
+- **Dangerous species:** 17 WHO-listed classes with 22,962 photos (12.7% of the classes' photos). Some have small Indian test sets (king cobra 15, banded krait 21, monocled cobra 24), so their results will carry wide bootstrap intervals and are also reported on `test_extra`.
+- **Real-world conditions:** iNaturalist photos are mostly still, well-framed and taken in daylight by enthusiasts. Real use means hurried phone photos and video, at night and with partial views. Augmentation and the planned synthetic and re-filmed video clips address this gap, and an emergency-department photo set (Manna et al. 2026) would test it if the authors agree.
+- **Segmentation:** there are no ground-truth snake masks, so masks come from SAM 2.1 pseudo-labels (section 9), with Open Images masks as a supplement.
+- **Video:** there is no public species-labelled snake video, so video is used for evaluation only, through synthetic clips.
+
+### 3.8 Augmentation, supplementary and synthetic data
+
+- **Augmentation** (applied in the data loader during training, not stored): random resized crops, horizontal flips, small rotations, brightness and contrast changes, blur, JPEG compression and partial occlusion. We avoid colour or hue shifts strong enough to change banding or colour patterns, which are diagnostic for several lookalike pairs.
+- **Supplementary data:** the HerpMapper and Flickr photos of Indian species from SnakeCLEF 2021 (about 1,160 Indian photos, to be fetched file by file), Open Images V7 snake masks for segmentation pretraining, and the Manna et al. 2026 emergency-department photos as a real-world test set if the authors grant labels and reuse.
+- **Synthetic data:** none in this milestone. The synthetic video clips from the Milestone 1 plan (camera motion, blur, low light and occlusion applied to test photos, with every parameter seeded and logged) will be generated for evaluation only, from test photos, in Milestone 5. The SAM masks are pseudo-labels on real photos, not synthetic images.
+
+### 3.9 Labels, annotations and how the datasets connect
+
+| Label or annotation | Source | Quality check |
+|---|---|---|
+| Species | iNaturalist research grade: at least two identifiers, more than two-thirds agreeing | Conflicting duplicates removed; subspecies rolled up by taxon id; planned 200-photo hand-check |
+| Genus and family | iNaturalist taxonomy of each species | Taken from the taxonomy tree, not typed by hand |
+| WHO category | WHO SEARO 2016, India list | 17 of the 20 listed species are classes. *Naja sagittifera* (Andaman cobra) has only 7 photos and sits in the unknown pool; *Trimeresurus albolabris* and *T. purpureomaculatus* have no research-grade photos under those names, likely because of later taxonomic splits. *Ophiophagus kaalinga* inherits the king cobra's category |
+| Snake mask | Grounding DINO plus SAM 2.1 pseudo-labels, training photos only | Quality flags; flagged masks go to a hand review |
+
+Every table shares one key. `metadata.csv` has one row per photo with its `path` and `photo_id`. A mask file has the same name as its photo. `classes.csv` maps each species to its `class_id`. The WHO category and taxonomy join on species. Masks are made only for training photos, so segmentation supervision never touches validation or test photos. Open Images is used only to pretrain the segmentation head and never enters the species splits.
+
 ## 4. Sample images
 
 Two photos from the dataset show one of the lookalike pairs the model must separate: the spectacled cobra is WHO Category 1, and the oriental rat snake is not listed.
@@ -182,13 +231,13 @@ Two photos from the dataset show one of the lookalike pairs the model must separ
 | <img src="assets/sample_naja_naja_inat84964394.jpg" alt="Spectacled cobra with raised hood" width="300"> | <img src="assets/sample_ptyas_mucosa_inat212098553.jpg" alt="Oriental rat snake on a branch" width="400"> |
 | © Chayant Gonsalves, CC BY, [iNaturalist 84964394](https://www.inaturalist.org/observations/84964394) | © Surabhi Srivastava, CC BY, [iNaturalist 212098553](https://www.inaturalist.org/observations/212098553) |
 
-The grids below are random training photos (fixed seed). Each grid's species order is listed in the matching `_order.txt` file in `assets/`.
+The grids below are random training photos (fixed seed), drawn only from photos whose licence allows sharing a resized copy with credit: CC0, CC BY, CC BY-SA, CC BY-NC and CC BY-NC-SA. Each grid has an `_attribution.csv` in `assets/` listing every tile's species, photographer, licence and source. Grids drawn from all photos, including all-rights-reserved ones, stay in the private Kaggle dataset (`figures/`).
 
-**One photo per class, all 208 classes** (row by row, in `classes.csv` order, largest class first):
+**One photo per class** (row by row, largest class first; [credits and order](assets/grid_all_classes_attribution.csv)):
 
 <img src="assets/grid_all_classes.jpg" alt="Grid of one training photo for each of the 208 classes" width="760">
 
-**WHO Category 1 and 2 species, four photos each** (one row per species, in [`assets/grid_who_listed_order.txt`](assets/grid_who_listed_order.txt) order) and **Milestone 1 core species, four photos each** ([`assets/grid_core27_order.txt`](assets/grid_core27_order.txt)):
+**WHO Category 1 and 2 species, four photos each** (one row per species; [credits and order](assets/grid_who_listed_attribution.csv)) and **Milestone 1 core species, four photos each** ([credits and order](assets/grid_core27_attribution.csv)):
 
 | WHO-listed species (17 rows) | Milestone 1 core species (27 rows) |
 |---|---|
@@ -269,7 +318,7 @@ serpentguard-indian-snakes-processed/
 └── README.md
 ```
 
-**Class ids come from `classes.csv`, never from the folders.** 28 species have no photos in `test/` and one has none in `val/` (section 6.4), so those splits have fewer species folders than `train/`. Loaders that number classes by the folders they find, such as plain `torchvision.datasets.ImageFolder` or Keras `image_dataset_from_directory`, would give one species different numbers in different splits and silently mislabel every photo after the first missing folder. `classes.csv` assigns one `class_id` per species, used for every split, and `metadata.csv` gives each photo's `path` and `species`, together with genus, family and WHO labels for the multi-task heads. The notebook (section 8) includes a dataset class that loads any split this way and prints the number of species folders per split.
+**Class ids come from `classes.csv`, never from the folders.** 28 species have no photos in `test/` and one has none in `val/` (section 6.4), so those splits have fewer species folders than `train/`. Loaders that number classes by the folders they find, such as plain `torchvision.datasets.ImageFolder` or Keras `image_dataset_from_directory`, would give one species different numbers in different splits and silently mislabel every photo after the first missing folder. `classes.csv` assigns one `class_id` per species, used for every split, and `metadata.csv` gives each photo's `path` and `species`, together with genus, family and WHO labels for the multi-task heads. [`notebooks/load_dataset_example.ipynb`](../../notebooks/load_dataset_example.ipynb) includes a dataset class that loads any split this way and prints the number of species folders per split.
 
 | Dataset on Kaggle (private) | Contents |
 |---|---|
@@ -281,25 +330,26 @@ The datasets are private. All four team members have access, and we add the cour
 
 ## 8. Reproducibility
 
-[`notebooks/m2_dataset_pipeline.ipynb`](../../notebooks/m2_dataset_pipeline.ipynb) rebuilds everything on Kaggle with internet on:
+The pipeline is a chain of Kaggle notebooks in [`notebooks/`](../../notebooks/README.md). Each one attaches its inputs by handle, does one job, and saves its output as a private dataset, which the next notebook reads. Any step can be rerun on its own.
 
-| Stage | Output | Time on Kaggle CPU |
-|---|---|---|
-| 1. Raw build (optional) | raw photos and manifest from iNaturalist | about 2.5 h |
-| 2. Clean, label, split | `splits.csv`, `classes.csv` | about 2 min |
-| 3. Process | `data/` layout, `metadata.csv`, near-duplicate removal | about 1 h |
-| 4. Grids and upload (optional) | sample grids; private dataset under the runner's account | about 20 min |
+| Notebook | Reads | Saves | Time |
+|---|---|---|---|
+| [`01_build_raw_dataset`](../../notebooks/01_build_raw_dataset.ipynb) | iNaturalist API | `serpentguard-indian-snakes` | about 2.5 h on CPU |
+| [`02_clean_and_split`](../../notebooks/02_clean_and_split.ipynb) | 01 | `serpentguard-m2-splits` | about 3 min on CPU |
+| [`03_process_dataset`](../../notebooks/03_process_dataset.ipynb) | 01 and 02 | `serpentguard-indian-snakes-processed` | about 35 min on CPU |
+| [`04_sam_masks`](../../notebooks/04_sam_masks.ipynb) | 01 and 02 | snake masks (section 9) | about 1 h per shard on two T4 GPUs |
+| [`load_dataset_example`](../../notebooks/load_dataset_example.ipynb) | 02 and 03 | nothing; the starting point for EDA and training notebooks | about a minute |
 
-Every random choice uses a fixed seed (42 for splits, 7 for sample grids). The cleaning steps, labels and class list reproduce exactly. The exact fold each photographer lands in also depends on the scikit-learn version, because `StratifiedGroupKFold` shuffling differs between releases:
+Every random choice uses a fixed seed (42 for splits, 7 for samples). The cleaning steps, labels and class list reproduce exactly. The fold each photographer lands in also depends on the scikit-learn version, because `StratifiedGroupKFold` shuffling differs between releases:
 
-- With scikit-learn 1.9.1, which made our split, rerunning stage 2 matched all 181,503 rows on split, path and every label.
-- Kaggle's default environment (scikit-learn 1.6.1) gave a different fold assignment of the same size and quality (train 131,238, test 7,662), again with zero leakage. It agrees with ours for 56.3% of photos.
+- With scikit-learn 1.9.1, which made our split, rerunning the split step matched all 181,503 rows on split, path and every label.
+- Kaggle's default environment (scikit-learn 1.6.1) gave a different fold assignment of the same size and quality (train 131,238, test 7,662), again with zero leakage, agreeing with ours for 56.3% of photos.
 
-The published `splits.csv` in `puneetbajajiitm/serpentguard-m2-splits` is therefore the reference split, and the notebook uses it by default (`SPLIT_SOURCE = "published"`). Run that way on Kaggle on 29 October 2026, the notebook rebuilt the processed dataset independently of our processing run and matched it exactly: 181,231 photos kept, 272 near-duplicates removed, 0 SHA-1 mismatches and 0 leakage on all four checks. iNaturalist keeps growing, so a fresh stage 1 run downloads more photos than ours. Our build date is 24 October 2026.
+Notebook 02 therefore installs scikit-learn 1.9.1 before it splits, and checks its result against the published `splits.csv`, which stays the reference split. Using that split on Kaggle on 29 October 2026, the processing step rebuilt the processed dataset independently of our first processing run and matched it exactly: 181,231 photos kept, 272 near-duplicates removed, 0 SHA-1 mismatches and 0 leakage on all four checks. iNaturalist keeps growing, so a fresh run of notebook 01 downloads more photos than ours. Our build date is 24 October 2026.
 
 ## 9. Known issues and next steps
 
-- **Segmentation masks.** [`notebooks/m2_sam_masks.ipynb`](../../notebooks/m2_sam_masks.ipynb) makes snake masks for training photos with Grounding DINO (prompt "a snake.") and SAM 2.1. SAM 3 accepts text prompts directly, but its weights are gated behind a manual access request, so we use the open SAM 2.1.
+- **Segmentation masks.** [`notebooks/04_sam_masks.ipynb`](../../notebooks/04_sam_masks.ipynb) makes snake masks for training photos with Grounding DINO (prompt "a snake.") and SAM 2.1. SAM 3 accepts text prompts directly, but its weights are gated behind a manual access request, so we use the open SAM 2.1.
   - The 500-photo pilot went through four versions. The first showed three failure types: hands included when someone holds the snake, background leaking in when several boxes were merged, and photos that show something other than a snake (shed skins, another animal).
   - The current version keeps one snake box, subtracts hands and gloves found by a separate detector pass, and flags doubtful masks (low detector score, a mask filling too little or too much of its box or photo). On the pilot it found a snake in 486 of 500 photos, flagged 95 for review, and ran at 0.39 seconds per photo on two T4 GPUs.
   - The full run (up to 200 training photos per class, 25,478 photos) is running in three shards across team accounts. The team will hand-check the flagged masks (`review.csv`) in Milestone 3, before the masks train the segmentation head.
