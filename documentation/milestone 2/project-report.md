@@ -258,7 +258,7 @@ A manual check of downloaded photos found the variety the model will face: snake
 | Keep the original resolution | photos stay at iNaturalist's `medium` size | the encoders compared in Milestone 3 need different input sizes (224, 256 or 384 px), so resizing, normalisation and augmentation happen in each model's data loader |
 | Attach labels | species, genus, family, WHO category, tier | the planned model has species, genus and danger heads |
 
-The class, split and licence figures in this report come from `metadata.csv`. The exploratory analysis and the preprocessing notebooks, with their visualisations, are in section 5.1.
+The class, split and licence figures in this report come from `metadata.csv`. The exploratory analysis is in section 5.1 and the SAM segmentation preprocessing and multi-task data loader pipeline is in section 5.2.
 
 ### 5.1 Exploratory data analysis
 
@@ -376,9 +376,57 @@ Counts, sizes, dates and licences use all 181,231 photos in `metadata.csv`. Anyt
 | The label finder is weak (24.8% accuracy) | Hand-check the top of its ranked list in Milestone 3; no automatic relabelling |
 | 16 of 17 dangerous species have a close relative that is not on our list | Review those pairs for lookalike errors and report them as well |
 
-#### 5.1.2 Preprocessing notebooks and visualisations (Vikas)
+### 5.2 Preprocessing, SAM segmentation pipeline and multi-task data loader (Vikas)
 
-*(To be added by Vikas.)*
+The preprocessing and model-ready data loading pipeline is implemented in [`notebooks/06_segmentation_preprocessing.ipynb`](../../notebooks/06_segmentation_preprocessing.ipynb). It joins the processed dataset (`serpentguard-indian-snakes-processed`) with the SAM masks (`serpentguard-sam-masks`) into an end-to-end PyTorch pipeline for Milestone 3 model training. Class ids come from the processed dataset's `classes.csv`, as everywhere else in the project.
+
+#### 5.2.1 Why SAM masks rather than bounding boxes
+Standard object detection places an axis-aligned bounding box around the target. However, because snakes frequently coil diagonally, wrap around tree branches, or wind across terrain, an axis-aligned bounding box is mostly background (dry leaves, soil, undergrowth, asphalt, rocks). In our 125,309 masks, background is a median 76% of the snake's detector box, and between 60% and 85% for the middle half (`mask_stats.csv`). A box alone therefore tells a model little about where the snake is.
+
+The precomputed Segment Anything Model (SAM 2.1) pixel masks from `serpentguard-sam-masks` mark the snake's outline (body, coils and head) and supervise the model's segmentation head.
+
+#### 5.2.2 Input modes
+Only training photos have SAM masks, and the phone app will not run SAM, so the model's input has to look the same in training, validation, test and on the phone. The default mode is therefore **`full`**: the whole photo, letterboxed to 320×320, with the SAM mask carried through the same letterbox and augmentation as the target of the segmentation head. This follows the Milestone 1 design, in which SAM masks supervise training and SAM is not needed on the device.
+
+Three mask-guided modes stay available for a Milestone 3 ablation. To be a fair comparison they need the same treatment at test time, for example a crop from the detector's box, because validation and test photos have no SAM mask:
+1. **Soft-Dimming (`mode="soft_dim"`, `bg_alpha=0.20`)**: Retains 100% of foreground snake pixel intensity while dimming non-snake background pixels by 80% towards neutral ImageNet gray `(124, 116, 104)`. A 5×5 Gaussian kernel softens mask edges so the transition does not introduce artificial high-frequency edge artifacts that a CNN might mistake for biological boundaries.
+2. **Hard-Masking (`mode="hard_mask"`, `bg_alpha=0.0`)**: Completely suppresses all background pixels outside the SAM mask, replacing them with neutral gray.
+3. **RGBM 4-Channel Input (`mode="rgbm_4ch"`)**: Retains the complete RGB image and appends the normalized SAM binary mask as a 4th input channel `(R, G, B, Mask)`. This allows dual-branch backbone architectures in Milestone 3 to dynamically cross-attend to foreground cues.
+
+#### 5.2.3 Aspect-ratio-preserving letterbox resizing (`320×320`)
+Naively stretching photos to standard square dimensions ($320\times320$) distorts snake body proportions, turning slender, elongated arboreal vine snakes (*Ahaetulla nasuta*) into thick-bodied terrestrial vipers (*Daboia russelii* or *Echis carinatus*).
+To eliminate distortion:
+- In the mask-guided modes, the pipeline first crops to the tight contour envelope of the SAM mask with a **+6% boundary padding** to safeguard tail tips and rostral scales. The default `full` mode keeps the whole photo.
+- The photo or crop is scaled along its longest dimension to 320 px using area interpolation (`cv2.INTER_AREA`), and the shorter dimension is centered with neutral gray letterbox padding.
+
+#### 5.2.4 Image hygiene and mask alignment
+Field photographs from smartphones can embed rotation tags in EXIF metadata (`90°`, `180°`, `270°`). The SAM masks were made on each photo's stored pixel grid, without applying those tags, so the pipeline loads photos the same way; rotating only the photo would misalign it with its mask. A check on the Kaggle run found rotation tags on 0 of 2,000 sampled training photos, and every mask must match its photo's size or the loader stops. Stray background specks or disconnected pseudo-label artifacts from SAM are filtered via morphological closing (`cv2.MORPH_CLOSE`) and connected-component analysis (`keep_largest_snake_components`), while retaining genuine disjoint snake coils. The mask is also converted into a normalized 64-point polygon contour compatible with `YOLOv8-seg`.
+
+#### 5.2.5 Tier-aware joint `(Image + Mask)` augmentation
+Augmentation transforms (spatial and photometric) are executed using Albumentations simultaneously on both RGB images and SAM masks:
+- **Tier-1 Head Classes (68 species, $\ge$400 photos)**: Moderate affine scaling ($\pm12\%$), rotation ($\pm25^\circ$), horizontal/vertical flips, subtle color jitter (brightness, contrast, saturation $\pm20\%$, hue $\pm4\%$), and coarse dropout (cutout) to encourage distributed scale recognition.
+- **Tier-2 Long-Tail Classes (140 species, 20–399 photos)**: Aggressive geometric augmentation ($\pm45^\circ$ rotation, shear $\pm10^\circ$, scale $0.80$–$1.20$), motion blur, and expanded dropout to prevent few-shot overfitting.
+- **Evaluation Split (`val`, `test`, `test_extra`)**: Deterministic ImageNet standardization with zero distortion.
+
+#### 5.2.6 Multi-task PyTorch dataset and safety-weighted sampler
+The PyTorch dataset (`SerpentGuardSAMDataset`) outputs synchronized multi-task targets per sample:
+- **Species ID**: `0..207` (208 active classes)
+- **Genus ID**: `0..69` (70 genera for taxonomic hierarchical loss)
+- **Family ID**: `0..12` (13 families)
+- **WHO Clinical Risk ID**: `0` = Not Listed, `1` = WHO Category 2 (Important), `2` = WHO Category 1 (Highest Medical Importance)
+
+To counter the severe 916× class imbalance while prioritizing clinical safety, training batches are sampled using a `WeightedRandomSampler` combining:
+$$\text{weight}_i = \frac{1}{\sqrt{N_{\text{class}(i)}}} \times \text{boost}_{\text{WHO}(i)}$$
+where $\text{boost}_{\text{WHO}} = 1.60\times$ for the 6 WHO Category 1 species (Russell's viper, spectacled cobra, monocled cobra, common krait, saw-scaled viper and hump-nosed pit viper), $1.35\times$ for the 11 WHO Category 2 species, and $1.00\times$ for non-listed species. This raises how often venomous species are sampled without starving the rare harmless species.
+
+#### 5.2.7 Kaggle run (30 October 2026)
+The notebook is saved with the outputs of its run on Kaggle (CPU):
+- 181,231 photos loaded; 180,575 in the 208 classes (the 656 `unknown_pool` photos are not used by the loaders).
+- WHO risk ids for photos in the classes: 157,613 not listed, 9,332 Category 2 and 13,630 Category 1.
+- 96,929 training photos linked to a usable SAM mask; the 32,312 flagged or empty masks are left out, and those photos get a full-frame mask.
+- One training batch of 32: images `(32, 3, 320, 320)`, masks `(32, 1, 320, 320)`, all five targets, and no blank images. A validation batch gets full-frame masks, as expected.
+- Train, validation and test loaders: 4,039, 802 and 229 batches of 32.
+- A five-panel preview (photo, mask, polygon, model input, soft-dimmed crop) for three CC BY training photos, with photographer credits.
 
 ## 6. Train, validation and test split
 
@@ -475,9 +523,10 @@ Notebook 02 therefore installs scikit-learn 1.9.1 before it splits, and checks i
   - The second run flags more masks than the first (25.9% against 21.1%) because the largest classes dominate it. The thin, camouflaged green vine snake (*Ahaetulla prasina*, 8,693 photos) has 43% of its masks flagged. Leaving out the three largest classes, the second run flags 22.8%. Masks are not capped per class, so mask training should sample per class to stay balanced.
   - Random samples of 40 and 60 masks matched their photo's size and the mask area recorded in the table, held only snake and background values and were never empty. No mask exists for a photo where no snake was found, and none for any validation or test photo.
   - Flagged masks stay out of training until the team checks them in Milestone 3.
-- **No ground-truth masks for evaluation.** Every mask is an automatic pseudo-label on a training photo. Validation and test photos have none, on purpose, so the model is never scored against SAM's own output, but it also means segmentation quality cannot be measured yet. Proposed for Milestone 3: hand-draw masks for a few hundred test photos spread across species.
+- **Ground-truth masks for evaluation.** Every SAM mask is an automatic pseudo-label on a training photo. Validation and test photos have none, on purpose, so the model is never scored against SAM's own output. For scoring segmentation, notebook 08 collected the 296 human-drawn snake masks on 284 Open Images V7 photos (validation and test splits, CC BY 2.0). They show snakes from anywhere, without species, so they measure outline quality, not Indian species. Proposed for Milestone 3: also hand-draw masks for a few hundred of our own test photos spread across species.
 - **Label noise.** Research grade applies to observations, so some photos show habitat, shed skin or a second animal. We will hand-check a stratified sample of 200 photos in Milestone 3 and report the error rate.
 - **Taxonomic change.** Species splits after older records (for example the king cobra in 2024) mean some older photos may sit under the parent species.
+- **Extended sources (notebooks 08 and 09, 30 October).** Notebook 08 collected 2,038 species-labelled photos: 704 SnakeCLEF 2023 photos of our species whose iNaturalist observation is not in our dataset (of 16,171 of our species, 15,461 were already ours), and 1,334 photos from the six single-species folders of `aishanikaggle/indian-snake`; folders such as "cobra" or "pit viper" cover several species and were left out. Notebook 09 dropped 54 near-duplicates of our photos (6 of them copies of validation or test photos) and 213 repeats among the new photos, and added the other 1,771 to training only, in `serpentguard-extended-combined`. A control caught 20 of 20 re-encoded copies of our test photos. GBIF and Roboflow need accounts and were not run.
 - **Sources not yet included.** The HerpMapper and Flickr photos from SnakeCLEF 2021, and the India Biodiversity Portal, as explained in section 1.2.
 
 ## References
