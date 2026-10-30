@@ -264,7 +264,7 @@ The class, split and licence figures in this report come from `metadata.csv`. Th
 
 #### 5.1.1 EDA and findings (Manas Rastogi)
 
-The analysis is one notebook, [`Group 5 - 2026T3 - DSAI Lab.ipynb`](../../Group%205%20-%202026T3%20-%20DSAI%20Lab.ipynb), saved with its outputs so the charts show on GitHub. It also runs on Kaggle as `wreckermoon/group-5-2026t3-dsai-lab-eda`. It reads the three private datasets from section 7 (the processed photos, the split and exclusion tables, and the SAM masks), works through them in the order below, and finishes in about 12 minutes on a CPU. Every number in this section is computed by the notebook when it runs. Where earlier sections of this report quote a figure, the notebook recomputes it and prints PASS or FAIL: all 73 checks pass.
+The analysis is one notebook, [`Group 5 - 2026T3 - DSAI Lab.ipynb`](../../Group%205%20-%202026T3%20-%20DSAI%20Lab.ipynb), saved with its outputs so the charts show on GitHub. It also runs on Kaggle as `wreckermoon/group-5-2026t3-dsai-lab-eda`. It reads the three private datasets from section 7 (the processed photos, the split and exclusion tables, and the SAM masks), works through them in the order below, and finishes in about 10 minutes on a Kaggle GPU (the embedding step in 5.14 needs it). Every number in this section is computed by the notebook when it runs. Where earlier sections of this report quote a figure, the notebook recomputes it and prints PASS or FAIL: all 86 checks pass.
 
 Counts, sizes, dates and licences use all 181,231 photos in `metadata.csv`. Anything that needs the pixels (brightness, sharpness, faces, fingerprints) uses a random sample of up to 30 photos per species, 6,784 photos from the 289 species (seed 42), because reading every file would take hours. Photos shown in the notebook are CC0 or CC BY (CC BY-NC when a class has none), each with the photographer's credit, and photos with a detected face are avoided.
 
@@ -280,6 +280,11 @@ Counts, sizes, dates and licences use all 181,231 photos in `metadata.csv`. Anyt
 | 6 | Where, when, by whom and under which licence were the photos taken? | Location, season and photographer habits can be learned as shortcuts | 6 |
 | 7 | Are dangerous species and their harmless lookalikes equally well covered? | The costliest mistake is a dangerous snake called harmless | 7 |
 | 8 | What did cleaning remove, and how good are the snake masks? | Shows what the model never sees and which masks can supervise training | 7a, 7b |
+| 9 | Which colour numbers should the model normalise with, and do the splits share them? | Mean and standard deviation must come from train only | 5.13 |
+| 10 | Do val and test look like train in content, and are there copies or wrong labels the hash missed? | A split that is easy to tell apart, a hidden copy or a wrong label distorts the score | 5.14, 5.15 |
+| 11 | How big is the snake in the frame, and how many photos have a visible problem? | Decides the input size and the cleaning rule | 5.16, 5.17 |
+| 12 | Does the picture space follow taxonomy and the lookalike pairs, and does train cover the test photos? | Tells us where the model will confuse species and where a test score is noisy | 5.18, 5.19 |
+| 13 | Do all files open, and in which format? | A PNG named `.jpg` or a grey photo breaks a loader | 5.20 |
 
 **What stands out**
 
@@ -316,6 +321,19 @@ Counts, sizes, dates and licences use all 181,231 photos in `metadata.csv`. Anyt
 
 <img src="assets/eda_quality_by_who.png" alt="Brightness, contrast, colourfulness, sharpness, saturation and short side by WHO category" width="640">
 
+**5a. Deeper checks (notebook sections 5.13 to 5.20).** These use the sample from section 5 and, for 5.14 to 5.19, a DINOv2-small embedding of 3,390 photos (up to 8 training photos per species and every sampled val, test and test_extra photo).
+
+| Section | What we found | What it means for training |
+|---|---|---|
+| 5.13 Colour | Train channel means are 0.456, 0.439, 0.375 and standard deviations 0.235, 0.224, 0.225, a little below the ImageNet values. val and test sit within 0.08 train standard deviations of train; `test_extra` is darker (up to 0.23 lower, in blue) | Normalise with the train numbers, not the ImageNet ones |
+| 5.14 Embeddings | After the species average is removed, a classifier barely separates train from val (AUC 0.542), test (0.507) or test_extra (0.491), so the splits look alike in content. 14 photos have a photo from another photographer at cosine similarity 0.9 or more and 2 at 0.95 or more, one of them across val and test (similarity 1.000) | The splits are comparable in appearance; the hash misses a few copies, which the plan below removes |
+| 5.15 Label issues | A simple classifier on the embeddings reaches 24.8% on photographers it has not seen, so it flags 66.6% of photos and is too weak to give a verdict. Of the flagged photos 15.2% have a guess in another WHO category and 12 have a label and guess that form a known lookalike pair | Use the ranked list only to choose photos for a hand check, never to drop photos automatically |
+| 5.16 Snake size | The median snake is 64% of the photo's long side. At a 224 px input 6.8% of snakes are shorter than 64 px and 21.8% shorter than 100 px; at 384 px 1.4% and 5.3%. *Echis carinatus* (WHO Category 1) is the worst of the large classes, with 13.2% of 1,705 masks under 64 px | A bigger input or a crop to the snake box helps small snakes most |
+| 5.17 Photo flags | 18.4% of sampled photos have at least one flag (dark 7.9%, odd shape 7.1%, low contrast 2.9%, grey 1.2%, blurry 0.9%, tiny 0.7%, overexposed 0.4%). Dropping dark, overexposed, blurry and tiny photos would remove 9.7%, unevenly (13.6% of Category 2, 6.1% of Category 1; 67% of *Boiga wallachi*) | Drop only the blurry and tiny photos; many species are photographed at night |
+| 5.18 Species map | The nearest photo from another photographer is in the same genus for 37.5% of photos (3.1% by chance) and the same family for 64.6% (32.8% by chance). From the dangerous side, 6 of the 9 named lookalike partners are among the 5 nearest of 207 species. For only 1 of the 17 dangerous species is the closest harmless species one on our list; for the others it is a relative missing from the WHO list | A genus or family head is worth testing; check the close relatives of dangerous species too |
+| 5.19 Coverage | The median similarity of a val, test or test_extra photo to its nearest training photo of the same species is 0.562, 0.569 and 0.574, so test is covered as well as val. The least covered species have only three test photos | A test score on those species is noisy rather than a sign of a gap |
+| 5.20 Files | 6,765 of the 6,784 sampled files are RGB JPEGs. 18 are PNG files named `.jpg` (13 with an alpha channel) and one JPEG is greyscale. None has an EXIF rotation flag or more than one frame; 4,626 carry a colour profile | Convert every photo to RGB when loading |
+
 **6. Where, when, who and licence.**
 
 | Topic | What we found | What it means for training |
@@ -351,6 +369,12 @@ Counts, sizes, dates and licences use all 181,231 photos in `metadata.csv`. Anyt
 | A few photographers dominate some classes (top three: 26.2% of a typical class) | Strong colour, blur and crop augmentation; validation grouped by photographer |
 | 25.0% of masks are flagged | Flagged masks stay out of mask training until the hand check in Milestone 3 |
 | Lookalike pairs differ in photo counts and quality | Report the error rate in both directions for every pair (Milestone 5) |
+| Train channel means and standard deviations differ a little from ImageNet's | Normalise with the train values from 5.13 |
+| 6.8% of snakes are under 64 px at a 224 px input, 1.4% at 384 px | Compare 224 and 384 px, and try cropping to the snake box first |
+| 18.4% of photos carry a flag, mostly dark or odd-shaped | Drop only blurry and tiny photos (1.7% of the sample); keep dark ones |
+| A few photos have a near copy from another photographer that the hash missed (2 at similarity 0.95 or more) | Add an embedding-similarity check to the near-copy filter |
+| The label finder is weak (24.8% accuracy) | Hand-check the top of its ranked list in Milestone 3; no automatic relabelling |
+| 16 of 17 dangerous species have a close relative that is not on our list | Review those pairs for lookalike errors and report them as well |
 
 #### 5.1.2 Preprocessing notebooks and visualisations (Vikas)
 
