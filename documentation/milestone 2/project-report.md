@@ -262,7 +262,99 @@ The class, split and licence figures in this report come from `metadata.csv`. Th
 
 ### 5.1 Exploratory data analysis
 
-*(To be added by Vikas and Manas.)*
+#### 5.1.1 EDA and findings (Manas Rastogi)
+
+The analysis is one notebook, [`Group 5 - 2026T3 - DSAI Lab.ipynb`](../../Group%205%20-%202026T3%20-%20DSAI%20Lab.ipynb), saved with its outputs so the charts show on GitHub. It also runs on Kaggle as `wreckermoon/group-5-2026t3-dsai-lab-eda`. It reads the three private datasets from section 7 (the processed photos, the split and exclusion tables, and the SAM masks), works through them in the order below, and finishes in about 12 minutes on a CPU. Every number in this section is computed by the notebook when it runs. Where earlier sections of this report quote a figure, the notebook recomputes it and prints PASS or FAIL: all 73 checks pass.
+
+Counts, sizes, dates and licences use all 181,231 photos in `metadata.csv`. Anything that needs the pixels (brightness, sharpness, faces, fingerprints) uses a random sample of up to 30 photos per species, 6,784 photos from the 289 species (seed 42), because reading every file would take hours. Photos shown in the notebook are CC0 or CC BY (CC BY-NC when a class has none), each with the photographer's credit, and photos with a detected face are avoided.
+
+**Questions we asked**
+
+| # | Question | Why it matters for the model | Notebook section |
+|---|---|---|---|
+| 1 | Do the tables, the class file and the image files on disk agree? | A wrong label or a missing file breaks training without an error | 1 |
+| 2 | How uneven are the classes, and how are the WHO categories spread? | Decides loss weighting, sampling and which metric to report | 2 |
+| 3 | Are the splits balanced, is anything shared between them, and does test look like train? | A shared photographer or a near copy inflates the test score, and a shift between train and test lowers it | 3 |
+| 4 | What sizes and shapes do the photos have? | Decides the input size and whether to crop or pad | 4 |
+| 5 | How sharp, bright and colourful are the photos, and do they differ by danger level, split or year? | A difference between train and test is a distribution shift | 5 |
+| 6 | Where, when, by whom and under which licence were the photos taken? | Location, season and photographer habits can be learned as shortcuts | 6 |
+| 7 | Are dangerous species and their harmless lookalikes equally well covered? | The costliest mistake is a dangerous snake called harmless | 7 |
+| 8 | What did cleaning remove, and how good are the snake masks? | Shows what the model never sees and which masks can supervise training | 7a, 7b |
+
+**What stands out**
+
+- **Test is not a smaller copy of train.** Every test photo was taken in India, against 37.6% of training photos; 55.8% of test photos are portrait against 40.7% in train; and 25.8% of test photos are WHO Category 1 or 2 against 12.6% in train.
+- **Danger and country are linked in training only.** In train, 77.7% of Category 1 photos, 55.5% of Category 2 photos and 33.1% of not-listed photos were taken in India. A model can use an Indian-looking scene as a weak hint of danger, and that hint cannot help on an all-Indian test set.
+- **Test classes come from few people.** 82 of the 180 classes with test photos have three photographers or fewer in `test`, and the ten smallest have one photo from one person.
+- **Some near copies remain.** The splits share no photographer, observation, checksum or identical hash, but 19 photos in val, test and test_extra sit within 2 bits of a training photo's perceptual hash. Only exact matches were removed (section 3.1 of this report).
+- **28 classes have no test photos**, three of them WHO-listed: *Macrovipera lebetinus*, *Naja oxiana* and *Bungarus walli*.
+- **A quarter of the snake masks are flagged** for review (section 7b).
+
+**1. Files and tables.** The metadata has 181,231 rows and 33 columns. The only missing values are the coordinates of 1,488 photos (0.8%), and every one of them is marked as obscured. No metadata row lacks an image file and no file lacks a row. `classes.csv` agrees with the metadata for every class and split, and every figure in `processing_report.json` equals the value recomputed from the tables.
+
+**2. Labels.** The data is long-tailed (figure below). The largest class, *Indotyphlops braminus*, has 18,328 photos and the smallest has 20; the median class has 162. The 10 largest classes hold 45.0% of the class photos, and 13 classes are enough to cover half of them. The imbalance ratio between the largest and smallest class is 916, the Gini coefficient of class sizes is 0.76, and the effective number of classes (1 / sum of squared shares) is 32.8 out of 208. 80 classes have fewer than 100 photos. The 289 species fall into 14 families and 77 genera; 29 genera have a single species, so a genus head adds nothing for them. WHO Category 1 and 2 hold 7.5% and 5.2% of the class photos in 6 and 11 classes. The Milestone 1 core set (27 classes) has 77,044 photos, 42.7% of the class photos.
+
+<img src="assets/eda_class_long_tail.png" alt="Photos per class on a log scale, with the tier 1 and tier 2 boundary" width="560">
+
+**3. Splits and leakage.** In the median class, 71.5% of the photos are in train, 14.2% in validation, 7.4% in test and 6.0% in test_extra. 28 classes have no photo in `test` (3 of them WHO-listed) and one class, *Wallaceophis gujaratensis*, has none in validation. The test rule (taken in India, uploaded from 1 January 2022) is broken by 0 of the 7,305 test photos. Between train, validation and test, the number of shared photographers, observations, SHA-1 checksums and perceptual hashes is 0 each. For information, `test` and `test_extra` share 122 photographers because both come from the same test fold, and the unknown pool shares 143 with train; neither counts as leakage. Beyond the split rule (the second part of notebook section 3, "Beyond the split rule"):
+
+| Check | Finding |
+|---|---|
+| Near copies of a training photo (hash within 2 bits) | 13 in val, 1 in test, 5 in test_extra; 23, 1 and 11 within 4 bits |
+| Photo shape | Landscape 57.2% of train, 42.4% of test; portrait 40.7% of train, 55.8% of test |
+| Photographers per class | 3 of 208 classes have 5 or fewer training photographers; 82 of 180 have 3 or fewer test photographers |
+| Several photos of one sighting | 67.9% of photos belong to an observation with more than one photo |
+| Subspecies | 8,578 photos (4.7%) were identified to a subspecies, for example *Coelognathus helena helena* |
+
+<img src="assets/eda_split_balance.png" alt="Share of each class's photos in train, validation, test and test_extra" width="560">
+
+<img src="assets/eda_india_share.png" alt="Share of photos taken in India, by split and WHO category" width="480">
+
+**4. Image sizes.** 99.7% of the photos have a long side of exactly 500 px, and the median photo is 500 × 375 px. 57.0% are landscape, 40.5% portrait and 2.5% square (aspect ratio within 2% of 1). The short side is under 224 px for 0.7% of the photos, under 256 px for 6.0% and under 320 px for 19.7%. Files have a median of 125 KB and a 99th percentile of 311 KB, but the largest is 26.2 MB: it is a GIF stored under a `.jpg` name. 536 photos have a non-JPEG address (GIF or PNG) and they take most of the highest bytes-per-pixel places. All photos together take 24.4 GB. The two image hosts (open-data bucket for CC photos, iNaturalist server for all-rights-reserved ones) serve photos of the same size and quality, so licence does not change what a photo looks like.
+
+**5. Image quality (sample).** Across the sample the median sharpness (variance of the Laplacian) is 1,633, brightness 116 (of 255), contrast 44.9, colourfulness 26.5 and saturation 0.26. Photos of WHO Category 2 snakes are the darkest (median brightness 105.8 against 116.5 for not-listed species, p below 0.001), while sharpness does not differ clearly by danger level (1,846 for Category 1, 1,570 for Category 2, 1,634 for not-listed). By split, test photos are somewhat sharper than train (1,930 against 1,628, p = 0.04), and test_extra photos are darker (104), more colourful (29.8) and more saturated (0.33). With this many photos even a small shift gives a small p-value, so we read the medians. A face was detected in 0.1% of the sample. Recomputing the perceptual hash gave a value within 2 bits of the stored one for 100% of the sampled photos, and 14 near-duplicate pairs (distance 2 or less) appeared inside the sample, all of the same species and 13 of them in the same split. Measuring the sample took 11 s per 1,000 photos.
+
+<img src="assets/eda_quality_by_who.png" alt="Brightness, contrast, colourfulness, sharpness, saturation and short side by WHO category" width="640">
+
+**6. Where, when, who and licence.**
+
+| Topic | What we found | What it means for training |
+|---|---|---|
+| Place | 37.7% of the photos are taken in India (37.6% of train, 37.2% of val, 12.7% of `test_extra`, all of `test`); 18.2% have obscured coordinates | Most training photos come from outside India, while the test set is all Indian |
+| Time | 87.1% of the photos were taken in 2020 or later; the median gap between seeing and uploading is 2 days, 47.5% are uploaded within a day and 13.5% after more than a year; 1,920 upload times fall before the observed date (UTC against local date) | Photos taken in different years differ in colour and sharpness (section 5.8), so the year is a possible shortcut |
+| Photographers | 25,041 photographers, a median of 2 photos each, 38.4% with a single photo; the Gini coefficient of photos per photographer is 0.72, the top 1% took 26.6% of the photos and the busiest took 2,189 | A few styles can dominate a class |
+| Photographers per class | In the median class the top three photographers took 26.2% of the training photos; *Wallaceophis gujaratensis* has 24 photos from 2 people | A model can learn a photographer's style instead of the species; validation should be grouped by photographer |
+| Licence | 68.7% of the photos are Creative Commons (124,569 photos); 24 classes have no CC0 or CC BY photo, and every class has at least one photo that may be shown | Public figures use CC photos only; the rest stay in the private datasets |
+
+<img src="assets/eda_india_map.png" alt="Map of photo locations inside India" width="420">
+
+**7. Safety lookalikes.** We examined nine pairs that join a WHO-listed species with a harmless lookalike, plus two pairs where both snakes are dangerous (*Hypnale hypnale* with *Craspedocephalus malabaricus* and with *Echis carinatus*). The WHO category of each side is read from `classes.csv`, and the notebook checks that the dangerous side is Category 1 or 2 and the lookalike is not listed. All nine pairs have test photos on both sides, the smallest side having 70 photos, and every side has 30 sampled photos. The dangerous snake's photos are darker than its lookalike's in 8 of 9 pairs, and blurrier in 3 of 9. Only two differences are clear (p below 0.01), both between the common krait and a wolf snake, and in both the krait's photos are the sharper ones. The per-pair counts are saved as `lookalike_pairs.csv` in the notebook output.
+
+**7a. Cleaning funnel.** The notebook rebuilds the table in section 3.1 from `splits.csv`, `excluded.csv` and `metadata.csv`: 182,497 raw photos, 928 exact duplicates, 30 duplicates with conflicting species, 36 files that are too small, 181,503 clean photos, 272 cross-split near-duplicates (164 validation, 75 `test_extra`, 33 test) and 181,231 in the final dataset. *Indotyphlops braminus* loses the most photos (117), and the largest share lost is 20.6% for *Platyceps josephi*, a small class. Among species with at least 50 raw photos no species loses more than 3.3%.
+
+<img src="assets/eda_cleaning_funnel.png" alt="Funnel from raw photos to the final dataset" width="560">
+
+**7b. Snake masks.** The notebook read the masks dataset version that was attached when it ran: 129,241 masks for training photos from 208 classes (13 to 13,311 per class), 100% of the training photos. 32,312 masks (25.0%) are flagged for review: 21.2% of Category 1, 18.1% of Category 2 and 25.7% of not-listed photos. The detector found no snake in 3,932 photos (3.0%) and two snakes in 5,568 (4.3%), and hands or gloves were cut out of 5,843 masks (4.5%). The commonest flag reasons are a low detector score and a low fill of the box by the mask. *Ahaetulla borealis* has the highest share of photos with no snake found, 13.8%.
+
+<img src="assets/eda_mask_flags.png" alt="Share of flagged masks by WHO category" width="520">
+
+**What the analysis changes in our plan**
+
+| Finding | What we do about it |
+|---|---|
+| Class sizes run from 20 to 18,328 photos | Class-balanced sampling or loss weighting; macro-F1 as the headline metric (section 3.5) |
+| 6.0% of photos have a short side under 256 px, and 40.5% are portrait | Resize and pad instead of centre-cropping; compare 224, 256 and 384 px inputs in Milestone 3 |
+| Test is 55.8% portrait against 40.7% in train | Include rotation and portrait crops in augmentation, and report validation scores on portrait photos separately |
+| Test classes have few photographers (82 of 180 with three or fewer) | Bootstrap by photographer, not by photo, for every confidence interval in Milestone 5 |
+| Danger level and India are linked in train (77.7% against 33.1%) but not in test | Also report validation results on the India-only part of validation, so the shift is visible before the test run |
+| 19 photos in val, test and test_extra have a near copy in train | Drop them before the split is frozen; it is a one-line filter on the perceptual hash |
+| A few photographers dominate some classes (top three: 26.2% of a typical class) | Strong colour, blur and crop augmentation; validation grouped by photographer |
+| 25.0% of masks are flagged | Flagged masks stay out of mask training until the hand check in Milestone 3 |
+| Lookalike pairs differ in photo counts and quality | Report the error rate in both directions for every pair (Milestone 5) |
+
+#### 5.1.2 Preprocessing notebooks and visualisations (Vikas)
+
+*(To be added by Vikas.)*
 
 ## 6. Train, validation and test split
 
