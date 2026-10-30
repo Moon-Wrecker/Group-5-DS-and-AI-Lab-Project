@@ -18,6 +18,7 @@ The course asks for this log to be updated every week with each member's contrib
 | Report | Milestone 2 report sections 1 to 4 and 6 to 8 (dataset documentation, splits, folder structure, reproducibility) | Puneet Bajaj, Jayesh Bansal | 29 Oct 2026 | Jayesh Bansal |
 | Snake masks | Built [`notebooks/04_sam_masks.ipynb`](notebooks/04_sam_masks.ipynb) (Grounding DINO and SAM 2.1); ran a 500-photo pilot through four versions (hand removal, single-box rule, quality flags, two-GPU speed-up) and started the full sharded run | Puneet Bajaj | 29 Oct 2026 | Jayesh Bansal |
 | Presentation | Prepared the Milestone 2 dataset presentation slides ([`SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf`](documentation/milestone%202/SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf)) | Vikas | 29 Oct 2026 | Vikas |
+| Preprocessing pipeline | Built SAM mask-guided foreground extraction (soft-dimming and hard-masking), aspect-ratio-preserving letterbox resizing (320x320), tier-aware joint augmentation (Albumentations), and the PyTorch multi-task dataset and class-balanced DataLoader ([`notebooks/serpentguard_ai_m2_segmentation_preprocessing.ipynb`](notebooks/serpentguard_ai_m2_segmentation_preprocessing.ipynb)) | Vikas | 30 Oct 2026 | Vikas |
 | EDA notebook | Wrote and published comprehensive 18-section EDA notebook covering species distribution, WHO categories, split balance, image quality, geographic distribution, temporal patterns, observer diversity, family taxonomy, excluded photos, lookalike pairs, and class imbalance analysis. Pushed to Kaggle notebook wreckermoon/group-5-2026t3-dsai-lab. | Manas Rastogi | 29 Oct 2026 | Manas Rastogi |
 | Extended sources plan | Researched and documented all additional data sources beyond iNaturalist: SnakeCLEF 2021/2023/2024, Open Images V7, GBIF India, Roboflow Universe, India-specific Kaggle datasets. Created notebooks 08 and 09 for extended data pull and cross-source deduplication. | Manas Rastogi | 29 Oct 2026 | Manas Rastogi |
 
@@ -25,6 +26,7 @@ The course asks for this log to be updated every week with each member's contrib
 
 | Member name | Work completed | Evidence / report sections | Member confirmation |
 |---|---|---|---|
+| Vikas | Presentation preparation; SAM segmentation preprocessing pipeline, multi-task dataset and data loader | [SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf](documentation/milestone%202/SerpentGuard_AI_Milestone2_Dataset_Presentation.pdf); [serpentguard_ai_m2_segmentation_preprocessing.ipynb](notebooks/serpentguard_ai_m2_segmentation_preprocessing.ipynb); report section 5.2 | Vikas |
 | Manas Rastogi | EDA notebook (18 sections); extended sources discovery and notebooks 08+09 | wreckermoon/group-5-2026t3-dsai-lab on Kaggle; notebooks/08_extended_sources.ipynb; notebooks/09_combine_and_reclean.ipynb | Manas Rastogi |
 
 ### Milestone 2 acknowledgment

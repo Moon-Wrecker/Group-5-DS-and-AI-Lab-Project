@@ -11,6 +11,9 @@ so any step can be rerun on its own without redoing the steps before it.
 | 03 | [`03_process_dataset.ipynb`](03_process_dataset.ipynb) | 01 and 02 | `serpentguard-indian-snakes-processed` | CPU, internet on | about 35 min |
 | 04 | [`04_sam_masks.ipynb`](04_sam_masks.ipynb) | 01 and 02 | snake masks, one zip per shard (notebook output) | GPU T4 x2, internet on | about 40 min per shard |
 | 05 | [`05_merge_sam_masks.ipynb`](05_merge_sam_masks.ipynb) | the 04 shards | `serpentguard-sam-masks` | CPU | a few minutes |
+| 06 | [`serpentguard_ai_m2_segmentation_preprocessing.ipynb`](serpentguard_ai_m2_segmentation_preprocessing.ipynb) | 02, 03 and 05 | preprocessed multi-task batches and manifest | GPU / CPU | about 10 min |
+| 08 | [`08_extended_sources.ipynb`](08_extended_sources.ipynb) | external sources | supplementary snake datasets | CPU, internet on | about 15 min |
+| 09 | [`09_combine_and_reclean.ipynb`](09_combine_and_reclean.ipynb) | 03 and 08 | combined clean dataset | CPU | about 5 min |
 | | [`load_dataset_example.ipynb`](load_dataset_example.ipynb) | 02 and 03 | nothing | CPU | a minute |
 
 The team's copies, built on 24 to 29 October 2026, are private datasets owned by `puneetbajajiitm`:

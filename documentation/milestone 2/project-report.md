@@ -258,11 +258,52 @@ A manual check of downloaded photos found the variety the model will face: snake
 | Keep the original resolution | photos stay at iNaturalist's `medium` size | the encoders compared in Milestone 3 need different input sizes (224, 256 or 384 px), so resizing, normalisation and augmentation happen in each model's data loader |
 | Attach labels | species, genus, family, WHO category, tier | the planned model has species, genus and danger heads |
 
-The class, split and licence figures in this report come from `metadata.csv`. The exploratory analysis and the preprocessing notebooks, with their visualisations, are in section 5.1.
+The class, split and licence figures in this report come from `metadata.csv`. The exploratory analysis is in section 5.1 and the SAM segmentation preprocessing and multi-task data loader pipeline is in section 5.2.
 
-### 5.1 Exploratory data analysis
+### 5.1 Exploratory data analysis (Manas Rastogi)
 
-*(To be added by Vikas and Manas.)*
+The comprehensive exploratory data analysis is implemented in [`Group 5 - 2026T3 - DSAI Lab.ipynb`](../../Group%205%20-%202026T3%20-%20DSAI%20Lab.ipynb) (106 small focused cells, attached to Kaggle dataset `puneetbajajiitm/serpentguard-m2-splits`, also available on Kaggle as `wreckermoon/group-5-2026t3-dsai-lab`). It covers species distribution across 208 active classes, WHO risk categories, photographer-grouped split balance, image resolutions, aspect ratio distributions, geographic and temporal coverage in India, observer diversity, family taxonomy, excluded photos, lookalike pairs, and class imbalance analysis.
+
+### 5.2 Preprocessing, SAM segmentation pipeline and multi-task data loader (Vikas)
+
+The preprocessing and model-ready data loading pipeline is implemented in [`notebooks/serpentguard_ai_m2_segmentation_preprocessing.ipynb`](../../notebooks/serpentguard_ai_m2_segmentation_preprocessing.ipynb) (with standalone script [`notebooks/serpentguard_ai_m2_segmentation_preprocessing.py`](../../notebooks/serpentguard_ai_m2_segmentation_preprocessing.py)). It integrates all three mounted project datasets (`serpentguard-m2-splits`, `serpentguard-indian-snakes-processed`, and `serpentguard-sam-masks`) into an end-to-end PyTorch pipeline for Milestone 3 model training.
+
+#### 5.2.1 Why SAM segmentation outperforms rectangular bounding boxes
+Standard object detection places an axis-aligned bounding box around the target. However, because snakes frequently coil diagonally, wrap around tree branches, or wind across terrain, an axis-aligned bounding box contains **60% to 85% background clutter** (dry leaves, soil, undergrowth, asphalt, rocks). Supervising models with raw bounding box crops forces the convolutional and attention heads to absorb substantial background noise. 
+
+By leveraging precomputed Segment Anything Model (SAM 2.1) pixel masks from `serpentguard-sam-masks`, the pipeline isolates the snake's true biological boundaries (dorsal scales, keels, subcaudals, and head shapes) while handling complex background scenes.
+
+#### 5.2.2 Configurable foreground preprocessing modes
+The preprocessing engine supports three foreground enhancement modes:
+1. **Soft-Dimming (`mode="soft_dim"`, default, `bg_alpha=0.20`)**: Retains 100% of foreground snake pixel intensity while dimming non-snake background pixels by 80% towards neutral ImageNet gray `(124, 116, 104)`. A Gaussian smoothing kernel ($\sigma=5$) softens mask edges so the transition does not introduce artificial high-frequency edge artifacts that a CNN might mistake for biological boundaries.
+2. **Hard-Masking (`mode="hard_mask"`, `bg_alpha=0.0`)**: Completely suppresses all background pixels outside the SAM mask, replacing them with neutral gray.
+3. **RGBM 4-Channel Input (`mode="rgbm_4ch"`)**: Retains the complete RGB image and appends the normalized SAM binary mask as a 4th input channel `(R, G, B, Mask)`. This allows dual-branch backbone architectures in Milestone 3 to dynamically cross-attend to foreground cues.
+
+#### 5.2.3 Aspect-ratio-preserving letterbox resizing (`320×320`)
+Naively stretching photos to standard square dimensions ($320\times320$) distorts snake body proportions, turning slender, elongated arboreal vine snakes (*Ahaetulla nasuta*) into thick-bodied terrestrial vipers (*Daboia russelii* or *Echis carinatus*).
+To eliminate distortion:
+- The pipeline computes the tight contour envelope of the SAM mask and adds a **+6% boundary padding** to safeguard sensitive tail tips and rostral scales.
+- The crop is scaled along its longest dimension to 320 px using area interpolation (`cv2.INTER_AREA`), and the shorter dimension is centered with neutral gray letterbox padding.
+
+#### 5.2.4 Image hygiene and EXIF orientation normalization
+Field photographs from smartphones often embed rotation tags in EXIF metadata (`90°`, `180°`, `270°`). Without normalization, standard image decoders load raw orientation while precomputed pixel masks correspond to rotated axes, causing misalignment. The pipeline enforces `ImageOps.exif_transpose()` on every loaded frame before mask alignment. Stray background specks or disconnected pseudo-label artifacts from SAM are filtered via morphological closing (`cv2.MORPH_CLOSE`) and connected-component analysis (`keep_largest_snake_components`), while retaining genuine disjoint snake coils. The mask is also converted into a normalized 64-point polygon contour compatible with `YOLOv8-seg`.
+
+#### 5.2.5 Tier-aware joint `(Image + Mask)` augmentation
+Augmentation transforms (spatial and photometric) are executed using Albumentations simultaneously on both RGB images and SAM masks:
+- **Tier-1 Head Classes (68 species, $\ge$400 photos)**: Moderate affine scaling ($\pm12\%$), rotation ($\pm25^\circ$), horizontal/vertical flips, subtle color jitter (brightness, contrast, saturation $\pm20\%$, hue $\pm4\%$), and coarse dropout (cutout) to encourage distributed scale recognition.
+- **Tier-2 Long-Tail Classes (140 species, 20–399 photos)**: Aggressive geometric augmentation ($\pm45^\circ$ rotation, shear $\pm10^\circ$, scale $0.80$–$1.20$), motion blur, and expanded dropout to prevent few-shot overfitting.
+- **Evaluation Split (`val`, `test`, `test_extra`)**: Deterministic ImageNet standardization with zero distortion.
+
+#### 5.2.6 Multi-task PyTorch dataset and safety-weighted sampler
+The PyTorch dataset (`SerpentGuardSAMDataset`) outputs synchronized multi-task targets per sample:
+- **Species ID**: `0..207` (208 active classes)
+- **Genus ID**: `0..76` (77 genera for taxonomic hierarchical loss)
+- **Family ID**: `0..13` (14 families)
+- **WHO Clinical Risk ID**: `0` = Not Listed, `1` = WHO Category 2 (Important), `2` = WHO Category 1 (Highest Medical Importance)
+
+To counter the severe 916× class imbalance while prioritizing clinical safety, training batches are sampled using a `WeightedRandomSampler` combining:
+$$\text{weight}_i = \frac{1}{\sqrt{N_{\text{class}(i)}}} \times \text{boost}_{\text{WHO}(i)}$$
+where $\text{boost}_{\text{WHO}} = 1.60\times$ for WHO Category 1 (Russell's viper, spectacled cobra, common krait, saw-scaled viper), $1.35\times$ for WHO Category 2, and $1.00\times$ for non-listed species. This guarantees frequent representation of lethal venomous species without collapsing minority harmless species representations.
 
 ## 6. Train, validation and test split
 
